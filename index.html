@@ -9,239 +9,313 @@
 </head>
 <body>
 <div id="app">
-  <aside id="sidebar" class="open">
-    <div class="row">
-      <div>
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar">
+    <div class="brand">
+      <div class="title hide-when-compact">
         <h1>RP Map</h1>
-        <div class="sub" id="modeLine">Viewer mode</div>
+        <div class="sub" id="subLine">Viewer • click things to inspect</div>
       </div>
-      <button id="toggleSidebar">☰</button>
-    </div>
 
-    <div class="section">
-      <label class="label">Search</label>
-      <input id="search" class="input" placeholder="Search houses, POIs, roads, counties..."/>
-    </div>
-
-    <div class="grid2 section">
-      <div>
-        <label class="label">Mode</label>
-        <select id="mode" class="input">
-          <option value="inspect">Inspect (Viewer)</option>
-          <option value="select">Select / Move</option>
-          <option value="marker">Place Marker</option>
-          <option value="road">Draw Road</option>
-          <option value="area">Draw Area (County)</option>
-          <option value="erase">Delete</option>
-        </select>
-      </div>
-      <div>
-        <label class="label">Color</label>
-        <input id="color" class="input" type="color" value="#00E5FF"/>
+      <div class="row">
+        <button class="iconbtn square" id="drawerBtn" title="Open/Close panel">☰</button>
+        <button class="iconbtn square" id="compactBtn" title="Compact panel">⫶</button>
       </div>
     </div>
 
-    <div class="grid2 section">
-      <div>
-        <label class="label">Marker Type</label>
-        <select id="markerType" class="input">
-          <option value="house">🏠 House #</option>
-          <option value="poi">📍 POI</option>
-          <option value="shop">🛒 Shop</option>
-          <option value="sheriff">⭐ Sheriff</option>
-          <option value="doctor">🩺 Doctor</option>
-          <option value="stable">🐴 Stable</option>
-          <option value="camp">⛺ Camp</option>
-          <option value="bank">🏦 Bank</option>
-          <option value="saloon">🍻 Saloon</option>
-          <option value="train">🚂 Train</option>
-          <option value="custom">✨ Custom</option>
-        </select>
+    <div class="row hide-when-compact">
+      <span class="pill" id="savePill">Saved</span>
+      <span class="pill good" id="permPill">Viewer</span>
+    </div>
+
+    <div class="section hide-when-compact">
+      <h2>Search</h2>
+      <input class="input" id="search" placeholder="Search houses, POIs, roads, counties..."/>
+      <div class="results" id="results"></div>
+    </div>
+
+    <div class="section hide-when-compact">
+      <h2>Tools</h2>
+      <div class="grid2">
+        <button class="btn primary" id="openCreate">Create</button>
+        <button class="btn" id="openSelected">Edit Selected</button>
       </div>
-      <div>
-        <label class="label">House #</label>
-        <input id="houseNum" class="input" placeholder="Auto"/>
+      <div class="grid2" style="margin-top:10px">
+        <button class="btn danger" id="deleteSelected">Delete Selected</button>
+        <button class="btn" id="clearSelected">Clear Select</button>
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="grid3">
+        <button class="btn" id="undoBtn" title="Undo (Ctrl+Z)">Undo</button>
+        <button class="btn" id="redoBtn" title="Redo (Ctrl+Y)">Redo</button>
+        <button class="btn" id="homeBtn">Home</button>
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="grid2">
+        <button class="btn" id="exportBtn">Export</button>
+        <button class="btn" id="importBtn">Import</button>
+      </div>
+
+      <textarea id="ioBox" placeholder="Export/Import JSON here..."></textarea>
+
+      <div class="row" style="justify-content:space-between">
+        <span class="kbd">E</span><span class="sub">Edit selected</span>
+        <span class="kbd">Del</span><span class="sub">Delete</span>
       </div>
     </div>
 
-    <div class="grid2 section">
-      <button id="finishRoad" class="btn">Finish Road</button>
-      <button id="undoPoint" class="btn">Undo Point</button>
+    <div class="section hide-when-compact">
+      <h2>Stats</h2>
+      <div class="row" style="justify-content:space-between">
+        <span class="sub">Markers</span><b id="mCount">0</b>
+      </div>
+      <div class="row" style="justify-content:space-between">
+        <span class="sub">Roads</span><b id="rCount">0</b>
+      </div>
+      <div class="row" style="justify-content:space-between">
+        <span class="sub">Areas</span><b id="aCount">0</b>
+      </div>
     </div>
 
-    <div class="grid2 section">
-      <button id="finishArea" class="btn">Finish Area</button>
-      <button id="closeLoop" class="btn">Close Loop</button>
-    </div>
-
-    <div class="grid2 section">
-      <button id="deleteSelected" class="btn danger">Delete Selected</button>
-      <button id="clearSelect" class="btn">Clear Select</button>
-    </div>
-
-    <div class="grid2 section">
-      <button id="resetView" class="btn">Reset View</button>
-      <button id="export" class="btn">Export</button>
-    </div>
-
-    <div class="section">
-      <textarea id="box" class="box" placeholder="Export JSON here..."></textarea>
-    </div>
-
-    <div class="status">
-      <span id="savePill" class="pill">Saved</span>
-      <span id="metaLine">0 markers • 0 roads • 0 areas</span>
+    <div class="section hide-when-compact">
+      <h2>Help</h2>
+      <div class="sub">
+        • Click to inspect<br/>
+        • <b>Create</b> opens the creator modal<br/>
+        • <b>Road/Area</b> = click points → Finish<br/>
+        • Edit requires Discord login + whitelist/role
+      </div>
     </div>
   </aside>
 
+  <!-- MAIN -->
   <main id="main">
     <div id="map"></div>
 
-    <div class="zoomHud">
-      <button class="hud-btn" id="zIn">＋</button>
-      <button class="hud-btn" id="zOut">－</button>
-      <button class="hud-btn" id="zHome">⌂</button>
+    <!-- Topbar -->
+    <div id="topbar">
+      <div class="toolbar">
+        <button class="modebtn" id="modeInspect">👁️ Inspect</button>
+        <button class="modebtn" id="modeSelect">🖱️ Select</button>
+        <button class="modebtn" id="modeMarker">📌 Marker</button>
+        <button class="modebtn" id="modeRoad">🛣️ Road</button>
+        <button class="modebtn" id="modeArea">🗺️ Area</button>
+        <button class="modebtn erase" id="modeErase">⬛ Delete</button>
+
+        <span class="smallchip" id="modeChip">Mode: Inspect</span>
+
+        <input type="color" id="color" class="smallchip" style="height:40px;padding:4px;border-radius:14px;width:56px" value="#00e5ff"/>
+        <button class="modebtn" id="finishBtn">✅ Finish</button>
+        <button class="modebtn" id="undoPointBtn">↩️ Undo Pt</button>
+      </div>
     </div>
 
-    <div class="authHud">
-      <button class="authBtn" id="loginBtn">🔒 Log in</button>
-      <button class="authBtn hidden" id="logoutBtn">🚪 Log out</button>
-      <div class="who hidden" id="who"></div>
+    <!-- Zoom -->
+    <div id="zoomHud">
+      <button class="hudbtn" id="zIn">＋</button>
+      <button class="hudbtn" id="zOut">－</button>
+      <button class="hudbtn" id="zHome">⌂</button>
     </div>
 
-    <div class="cursorHalo hidden" id="halo"></div>
+    <!-- Auth -->
+    <div id="authHud">
+      <button class="authbtn" id="loginBtn">🔒 Log in</button>
+      <button class="authbtn" id="logoutBtn" style="display:none">🚪 Log out</button>
+      <div class="who" id="who" style="display:none"></div>
+    </div>
+
+    <!-- Toasts -->
+    <div id="toastWrap"></div>
+
+    <!-- Cursor halo -->
+    <div id="halo"></div>
+
+    <!-- Modal -->
+    <div id="modalBack">
+      <div id="modal">
+        <div class="head">
+          <div class="h" id="modalTitle">Create</div>
+          <button class="iconbtn square" id="modalClose">✕</button>
+        </div>
+        <div class="body" id="modalBody"></div>
+        <div class="foot" id="modalFoot"></div>
+      </div>
+    </div>
+
   </main>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-/** ====== CONFIG ====== **/
+/* =========================
+   CONFIG
+========================= */
 const MAP_ID = "rdo_main";
 const MAP_IMAGE_URL = "./assets/map.jpg";
-
-// IMPORTANT: set these to your image pixel size (must match file)
 const MAP_W = 1080;
 const MAP_H = 1017;
 
-// If true, autosave goes to /api/save (global). If false, local only.
 const USE_API = true;
+const LOCAL_KEY = "rp_map_cache_v4";
 
-/** ====== STATE ====== **/
+/* =========================
+   STATE
+========================= */
 let canEdit = false;
 let me = null;
 
 let data = { markers: [], roads: [], areas: [] };
-// markers: {id, kind, x,y, color, title, desc, emoji, houseNum}
-// roads: {id, color, pts:[[y,x]...], title, desc}
-// areas: {id, color, pts:[[y,x]...], title, desc, kind:'county'}
+let selected = null; // {type,id,layer}
+let mode = "inspect"; // inspect|select|marker|road|area|erase
 
-const STORAGE_KEY = "rp_map_local_cache_v3";
+// drawing
+let drawPts = [];
+let drawLayer = null; // polyline or polygon
 
-const el = (id)=>document.getElementById(id);
+// undo/redo
+let undoStack = [];
+let redoStack = [];
+const UNDO_MAX = 60;
 
-let mode = el("mode").value;
-let currentLinePts = [];
-let currentLineLayer = null;
-let currentAreaPts = [];
-let currentAreaLayer = null;
-
-let selected = null; // {type:'marker'|'road'|'area', id, layer}
-
+// debounce save
 let saveTimer = null;
-let isSaving = false;
 
-/** ====== UI helpers ====== **/
-function setSaved(ok){
-  el("savePill").textContent = ok ? "Saved" : "Saving...";
-}
-function updateMeta(){
-  el("metaLine").textContent = `${data.markers.length} markers • ${data.roads.length} roads • ${data.areas.length} areas`;
-}
-function setModeLine(){
-  const txt = canEdit ? "Editor enabled" : "Viewer only";
-  el("modeLine").textContent = `${txt} • Mode: ${mode}`;
-}
+/* =========================
+   DOM
+========================= */
+const $ = (id)=>document.getElementById(id);
+const sidebar = $("sidebar");
+const results = $("results");
+const search = $("search");
+const savePill = $("savePill");
+const permPill = $("permPill");
+const subLine = $("subLine");
+const modeChip = $("modeChip");
+const colorInp = $("color");
 
-/** ====== Leaflet map ====== **/
+const ioBox = $("ioBox");
+
+const modalBack = $("modalBack");
+const modalBody = $("modalBody");
+const modalFoot = $("modalFoot");
+const modalTitle = $("modalTitle");
+
+const who = $("who");
+const loginBtn = $("loginBtn");
+const logoutBtn = $("logoutBtn");
+
+const mCount = $("mCount");
+const rCount = $("rCount");
+const aCount = $("aCount");
+
+/* =========================
+   Map
+========================= */
 const map = L.map("map", {
   crs: L.CRS.Simple,
   minZoom: -3,
   maxZoom: 4,
   zoomSnap: 0.25,
   zoomDelta: 0.5,
-  wheelDebounceTime: 20,
   wheelPxPerZoomLevel: 80
 });
-
 const bounds = [[0,0],[MAP_H, MAP_W]];
 L.imageOverlay(MAP_IMAGE_URL, bounds).addTo(map);
 map.fitBounds(bounds);
 
-const roadsLayer = L.layerGroup().addTo(map);
-const areasLayer = L.layerGroup().addTo(map);
-const markersLayer = L.layerGroup().addTo(map);
+const layerMarkers = L.layerGroup().addTo(map);
+const layerRoads = L.layerGroup().addTo(map);
+const layerAreas = L.layerGroup().addTo(map);
 
-/** ====== Cursor halo for visibility ====== **/
-const halo = el("halo");
-el("main").addEventListener("mousemove", (e)=>{
-  halo.classList.remove("hidden");
+/* hide leaflet default controls */
+document.querySelectorAll(".leaflet-control-container").forEach(x=>x.style.display="none");
+
+/* Cursor halo */
+const halo = $("halo");
+$("main").addEventListener("mousemove", (e)=>{
   halo.style.left = e.clientX + "px";
   halo.style.top = e.clientY + "px";
 });
-el("main").addEventListener("mouseleave", ()=>halo.classList.add("hidden"));
-
-function setHaloMode(){
+function setHalo(){
   halo.classList.toggle("erase", mode==="erase");
 }
 
-/** ====== ID helpers ====== **/
-function nextId(arr){
-  let n = 1;
-  const s = new Set(arr.map(x=>x.id));
-  while(s.has(n)) n++;
-  return n;
+/* =========================
+   UI helpers
+========================= */
+function toast(msg, type="good", ms=2600){
+  const wrap = $("toastWrap");
+  const el = document.createElement("div");
+  el.className = `toast ${type}`;
+  el.innerHTML = `<div class="t">${escapeHtml(msg)}</div><div class="x">✕</div>`;
+  el.querySelector(".x").onclick = ()=> el.remove();
+  wrap.appendChild(el);
+  setTimeout(()=>{ if(el.isConnected) el.remove(); }, ms);
 }
 
-/** ====== Icons ====== **/
-const emojiMap = {
-  house:"🏠", poi:"📍", shop:"🛒", sheriff:"⭐", doctor:"🩺", stable:"🐴",
-  camp:"⛺", bank:"🏦", saloon:"🍻", train:"🚂", custom:"✨"
-};
-function markerIcon(m){
-  const emoji = m.emoji || emojiMap[m.kind] || "📍";
-  const color = m.color || "#00E5FF";
-  const label = (m.kind==="house") ? String(m.houseNum || m.id) : emoji;
+function setSaved(ok){
+  savePill.textContent = ok ? "Saved" : "Saving…";
+  savePill.className = "pill " + (ok ? "" : "warn");
+}
 
-  return L.divIcon({
-    className:"",
-    html: `
-      <div style="
-        width:30px;height:30px;border-radius:999px;
-        display:grid;place-items:center;
-        border:2px solid ${color};
-        background:rgba(0,0,0,.45);
-        color:${color};
-        font:900 14px/1 system-ui;
-        box-shadow:0 2px 12px rgba(0,0,0,.45);
-        user-select:none;
-      ">${label}</div>
-    `,
-    iconSize:[30,30],
-    iconAnchor:[15,15]
+function setPermPill(){
+  permPill.textContent = canEdit ? "Editor" : "Viewer";
+  permPill.className = "pill " + (canEdit ? "good" : "");
+  subLine.textContent = canEdit
+    ? "Editor • create markers, roads, areas"
+    : "Viewer • click things to inspect";
+}
+
+function setMode(newMode){
+  // lock editing modes if not allowed
+  const needsEdit = ["select","marker","road","area","erase"].includes(newMode);
+  if(needsEdit && !canEdit){
+    toast("Viewer only. Log in to edit.", "warn");
+    newMode = "inspect";
+  }
+  mode = newMode;
+
+  // delete should force black for visibility
+  if(mode==="erase") colorInp.value = "#000000";
+
+  // clear draw temp
+  drawPts = [];
+  if(drawLayer){ map.removeLayer(drawLayer); drawLayer=null; }
+
+  // ui
+  modeChip.textContent = `Mode: ${modeLabel(mode)}`;
+  setHalo();
+  setTopbarActive();
+  rerender();
+}
+
+function modeLabel(m){
+  return m==="inspect" ? "Inspect"
+    : m==="select" ? "Select"
+    : m==="marker" ? "Marker"
+    : m==="road" ? "Road"
+    : m==="area" ? "Area"
+    : m==="erase" ? "Delete"
+    : m;
+}
+
+function setTopbarActive(){
+  const mapBtn = {
+    inspect:"modeInspect", select:"modeSelect", marker:"modeMarker",
+    road:"modeRoad", area:"modeArea", erase:"modeErase"
+  };
+  Object.values(mapBtn).forEach(id=>{
+    const b = $(id);
+    b.classList.remove("active");
   });
+  $(mapBtn[mode]).classList.add("active");
 }
 
-function popupHtml(title, desc){
-  const t = String(title||"").trim();
-  const d = String(desc||"").trim();
-  return `
-    <div style="min-width:220px">
-      <div style="font-weight:900;margin-bottom:6px">${escapeHtml(t||"Info")}</div>
-      <div style="opacity:.85;font-size:12px;line-height:1.35">${escapeHtml(d||"No description yet.")}</div>
-      ${canEdit ? `<div style="opacity:.65;font-size:11px;margin-top:8px">(Right click / long-press to edit)</div>` : ``}
-    </div>
-  `;
-}
 function escapeHtml(str){
   return String(str||"")
     .replaceAll("&","&amp;")
@@ -251,154 +325,568 @@ function escapeHtml(str){
     .replaceAll("'","&#039;");
 }
 
-/** ====== Selection ====== **/
-function clearSelectedStyle(){
-  if(!selected) return;
-  if(selected.type==="road") selected.layer.setStyle({weight:4, opacity:0.9});
-  if(selected.type==="area") selected.layer.setStyle({weight:3, opacity:0.35, fillOpacity:0.12});
+function nextId(arr){
+  let n=1; const s=new Set(arr.map(x=>x.id));
+  while(s.has(n)) n++;
+  return n;
 }
+
+function pushUndo(){
+  undoStack.push(JSON.stringify(data));
+  if(undoStack.length > UNDO_MAX) undoStack.shift();
+  redoStack.length = 0;
+  updateUndoRedo();
+}
+
+function undo(){
+  if(!undoStack.length) return;
+  redoStack.push(JSON.stringify(data));
+  data = JSON.parse(undoStack.pop());
+  updateUndoRedo();
+  rerender();
+  scheduleSave();
+}
+
+function redo(){
+  if(!redoStack.length) return;
+  undoStack.push(JSON.stringify(data));
+  data = JSON.parse(redoStack.pop());
+  updateUndoRedo();
+  rerender();
+  scheduleSave();
+}
+
+function updateUndoRedo(){
+  $("undoBtn").disabled = !undoStack.length;
+  $("redoBtn").disabled = !redoStack.length;
+}
+
+/* =========================
+   Icons + popups
+========================= */
+const EMOJIS = [
+  "🏠","📍","⭐","🛒","🩺","🐴","🍻","🏦","🚂","⛺",
+  "⚒️","🧭","🪙","🧱","🕯️","🔥","💎","🪓","🎯","🧨",
+  "🏛️","🗝️","🧪","📦","👑","🛡️","⚖️","📜","🪦","🪵"
+];
+
+function markerIcon(m){
+  const color = m.color || "#00e5ff";
+  const label = (m.kind==="house") ? String(m.houseNum || m.id) : (m.emoji || "📍");
+  return L.divIcon({
+    className:"",
+    html: `
+      <div style="
+        width:32px;height:32px;border-radius:999px;
+        display:grid;place-items:center;
+        border:2px solid ${color};
+        background:rgba(0,0,0,.44);
+        color:${color};
+        font:950 14px/1 system-ui;
+        box-shadow:0 2px 14px rgba(0,0,0,.55);
+        user-select:none;
+      ">${escapeHtml(label)}</div>
+    `,
+    iconSize:[32,32],
+    iconAnchor:[16,16]
+  });
+}
+
+function popupHtml(obj, type){
+  const title = obj.title || (type==="road" ? "Road" : type==="area" ? "Area" : "Marker");
+  const desc = obj.desc || "No description yet.";
+  const meta = type==="marker"
+    ? `x:${obj.x} y:${obj.y}`
+    : `pts:${obj.pts.length}`;
+  return `
+    <div style="min-width:220px">
+      <div style="font-weight:950;margin-bottom:6px">${escapeHtml(title)}</div>
+      <div style="opacity:.85;font-size:12px;line-height:1.35">${escapeHtml(desc)}</div>
+      <div style="opacity:.65;font-size:11px;margin-top:8px">${escapeHtml(meta)}</div>
+    </div>
+  `;
+}
+
+/* =========================
+   Render
+========================= */
 function setSelected(sel){
-  clearSelectedStyle();
+  // unstyle
+  if(selected?.type==="road") selected.layer.setStyle({weight:5, opacity:0.9});
+  if(selected?.type==="area") selected.layer.setStyle({weight:4, opacity:0.55, fillOpacity:0.12});
   selected = sel || null;
-  if(!selected) return;
-  if(selected.type==="road") selected.layer.setStyle({weight:7, opacity:1});
-  if(selected.type==="area") selected.layer.setStyle({weight:5, opacity:0.55, fillOpacity:0.18});
+
+  // style
+  if(selected?.type==="road") selected.layer.setStyle({weight:9, opacity:1});
+  if(selected?.type==="area") selected.layer.setStyle({weight:7, opacity:0.75, fillOpacity:0.18});
 }
 
-/** ====== Render ====== **/
-function renderAll(){
-  roadsLayer.clearLayers();
-  areasLayer.clearLayers();
-  markersLayer.clearLayers();
+function rerender(){
+  layerMarkers.clearLayers();
+  layerRoads.clearLayers();
+  layerAreas.clearLayers();
 
-  // Areas (counties)
+  // Areas
   data.areas.forEach((a)=>{
     const poly = L.polygon(a.pts, {
-      color: a.color || "#00E5FF",
-      weight:3,
+      color: a.color || "#00e5ff",
+      weight:4,
       opacity:0.55,
       fillOpacity:0.12
-    }).addTo(areasLayer);
+    }).addTo(layerAreas);
 
-    poly.bindPopup(popupHtml(a.title || "Area", a.desc || ""));
+    poly.bindPopup(popupHtml(a,"area"));
 
     poly.on("click",(e)=>{
-      if(mode!=="inspect" && mode!=="select" && mode!=="erase") return;
+      if(!["inspect","select","erase"].includes(mode)) return;
       L.DomEvent.stopPropagation(e);
       setSelected({type:"area", id:a.id, layer:poly});
       if(mode==="erase" && canEdit) deleteSelected();
+    });
+
+    poly.on("contextmenu",(e)=>{
+      if(!canEdit) return;
+      L.DomEvent.stopPropagation(e);
+      setSelected({type:"area", id:a.id, layer:poly});
+      openEditorForSelected();
     });
   });
 
   // Roads
   data.roads.forEach((r)=>{
     const line = L.polyline(r.pts, {
-      color: r.color || "#00E5FF",
-      weight:4,
+      color: r.color || "#00e5ff",
+      weight:5,
       opacity:0.9
-    }).addTo(roadsLayer);
+    }).addTo(layerRoads);
 
-    line.bindPopup(popupHtml(r.title || "Road", r.desc || ""));
+    line.bindPopup(popupHtml(r,"road"));
 
     line.on("click",(e)=>{
-      if(mode!=="inspect" && mode!=="select" && mode!=="erase") return;
+      if(!["inspect","select","erase"].includes(mode)) return;
       L.DomEvent.stopPropagation(e);
       setSelected({type:"road", id:r.id, layer:line});
       if(mode==="erase" && canEdit) deleteSelected();
+    });
+
+    line.on("contextmenu",(e)=>{
+      if(!canEdit) return;
+      L.DomEvent.stopPropagation(e);
+      setSelected({type:"road", id:r.id, layer:line});
+      openEditorForSelected();
     });
   });
 
   // Markers
   data.markers.forEach((m)=>{
-    const marker = L.marker([m.y, m.x], {
+    const mk = L.marker([m.y,m.x], {
       icon: markerIcon(m),
-      draggable: canEdit && (mode==="select")
-    }).addTo(markersLayer);
+      draggable: canEdit && mode==="select"
+    }).addTo(layerMarkers);
 
-    marker.bindPopup(popupHtml(m.title || (m.kind==="house" ? `House #${m.houseNum||m.id}` : "Marker"), m.desc || ""));
+    mk.bindPopup(popupHtml(m,"marker"));
 
-    marker.on("click",(e)=>{
-      if(mode!=="inspect" && mode!=="select" && mode!=="erase") return;
+    mk.on("click",(e)=>{
+      if(!["inspect","select","erase"].includes(mode)) return;
       L.DomEvent.stopPropagation(e);
-      setSelected({type:"marker", id:m.id, layer:marker});
+      setSelected({type:"marker", id:m.id, layer:mk});
       if(mode==="erase" && canEdit) deleteSelected();
     });
 
-    marker.on("dragend", ()=>{
-      const p = marker.getLatLng();
+    mk.on("dragend", ()=>{
+      const p = mk.getLatLng();
       m.y = Math.round(p.lat);
       m.x = Math.round(p.lng);
       scheduleSave();
     });
 
-    // edit popup (desktop right click)
-    marker.on("contextmenu",(e)=>{
-      if(!canEdit || mode!=="select") return;
+    mk.on("contextmenu",(e)=>{
+      if(!canEdit) return;
       L.DomEvent.stopPropagation(e);
-      editMarker(m, marker);
+      setSelected({type:"marker", id:m.id, layer:mk});
+      openEditorForSelected();
     });
-
-    // long press mobile
-    let press=null;
-    marker.on("mousedown", ()=>{
-      if(!canEdit || mode!=="select") return;
-      press = setTimeout(()=>editMarker(m, marker), 550);
-    });
-    marker.on("mouseup", ()=>press && clearTimeout(press));
-    marker.on("mouseout", ()=>press && clearTimeout(press));
   });
 
-  updateMeta();
-  setModeLine();
+  // stats
+  mCount.textContent = data.markers.length;
+  rCount.textContent = data.roads.length;
+  aCount.textContent = data.areas.length;
+
+  // search refresh
+  runSearch(search.value.trim());
 }
 
-/** ====== Edit dialogs ====== **/
-function editMarker(m, layer){
-  const t = prompt("Title:", m.title || "") ?? (m.title||"");
-  const d = prompt("Description:", m.desc || "") ?? (m.desc||"");
-  const c = prompt("Color hex (#00E5FF):", m.color || el("color").value || "#00E5FF") ?? (m.color||"#00E5FF");
-  const em = prompt("Emoji (optional):", m.emoji || "") ?? (m.emoji||"");
+/* =========================
+   Map click logic
+========================= */
+map.on("click",(e)=>{
+  const y = Math.round(e.latlng.lat);
+  const x = Math.round(e.latlng.lng);
 
-  m.title = String(t).trim();
-  m.desc = String(d).trim();
-  m.color = String(c).trim() || "#00E5FF";
-  m.emoji = String(em).trim();
-
-  layer.setIcon(markerIcon(m));
-  layer.setPopupContent(popupHtml(m.title, m.desc));
-  scheduleSave();
-}
-
-function editLineOrArea(obj, layer, label){
-  const t = prompt(`${label} title:`, obj.title || "") ?? (obj.title||"");
-  const d = prompt(`${label} description:`, obj.desc || "") ?? (obj.desc||"");
-  obj.title = String(t).trim();
-  obj.desc = String(d).trim();
-  layer.setPopupContent(popupHtml(obj.title, obj.desc));
-  scheduleSave();
-}
-
-/** ====== Delete selected ====== **/
-function deleteSelected(){
-  if(!canEdit) return alert("Log in to edit.");
-  if(!selected) return;
-
-  if(selected.type==="marker"){
-    data.markers = data.markers.filter(x=>x.id!==selected.id);
-  } else if(selected.type==="road"){
-    data.roads = data.roads.filter(x=>x.id!==selected.id);
-  } else if(selected.type==="area"){
-    data.areas = data.areas.filter(x=>x.id!==selected.id);
+  if(mode==="inspect"){
+    setSelected(null);
+    return;
   }
-  setSelected(null);
-  renderAll();
-  scheduleSave();
+  if(!canEdit) return;
+
+  if(mode==="marker"){
+    // create with modal defaults
+    openCreateModal({x,y});
+    return;
+  }
+
+  if(mode==="road"){
+    drawPts.push([y,x]);
+    if(drawLayer) map.removeLayer(drawLayer);
+    drawLayer = L.polyline(drawPts, {weight:5, opacity:0.95, color: colorInp.value || "#00e5ff"}).addTo(map);
+    return;
+  }
+
+  if(mode==="area"){
+    drawPts.push([y,x]);
+    if(drawLayer) map.removeLayer(drawLayer);
+    drawLayer = L.polygon(drawPts, {weight:4, opacity:0.65, color: colorInp.value || "#00e5ff", fillOpacity:0.12}).addTo(map);
+    return;
+  }
+
+  if(mode==="select"){
+    setSelected(null);
+  }
+});
+
+/* =========================
+   Finish / Undo point
+========================= */
+function finishDraw(){
+  if(!canEdit) return toast("Log in to edit.", "warn");
+
+  if(mode==="road"){
+    if(drawPts.length < 2) return toast("Road needs at least 2 points.", "warn");
+    pushUndo();
+    const obj = { id: nextId(data.roads), color: colorInp.value || "#00e5ff", pts: drawPts, title:"", desc:"" };
+    data.roads.push(obj);
+    drawPts=[]; if(drawLayer){ map.removeLayer(drawLayer); drawLayer=null; }
+    rerender(); scheduleSave();
+    toast("Road created.", "good");
+    return;
+  }
+
+  if(mode==="area"){
+    if(drawPts.length < 3) return toast("Area needs at least 3 points.", "warn");
+    pushUndo();
+    const obj = { id: nextId(data.areas), color: colorInp.value || "#00e5ff", pts: drawPts, title:"", desc:"", kind:"county" };
+    data.areas.push(obj);
+    drawPts=[]; if(drawLayer){ map.removeLayer(drawLayer); drawLayer=null; }
+    rerender(); scheduleSave();
+    toast("Area created.", "good");
+    return;
+  }
+
+  toast("Nothing to finish in this mode.", "warn");
 }
 
-/** ====== Saving/loading ====== **/
+function undoPoint(){
+  if(!canEdit) return toast("Log in to edit.", "warn");
+  if(!["road","area"].includes(mode)) return;
+  if(!drawPts.length) return;
+
+  drawPts.pop();
+  if(drawLayer) map.removeLayer(drawLayer);
+  drawLayer = drawPts.length
+    ? (mode==="road"
+        ? L.polyline(drawPts, {weight:5, opacity:0.95, color: colorInp.value || "#00e5ff"}).addTo(map)
+        : L.polygon(drawPts, {weight:4, opacity:0.65, color: colorInp.value || "#00e5ff", fillOpacity:0.12}).addTo(map)
+      )
+    : null;
+}
+
+/* =========================
+   Selected actions
+========================= */
+function findSelectedObject(){
+  if(!selected) return null;
+  if(selected.type==="marker") return data.markers.find(x=>x.id===selected.id) || null;
+  if(selected.type==="road") return data.roads.find(x=>x.id===selected.id) || null;
+  if(selected.type==="area") return data.areas.find(x=>x.id===selected.id) || null;
+  return null;
+}
+
+function deleteSelected(){
+  if(!selected) return toast("Nothing selected.", "warn");
+  if(!canEdit) return toast("Log in to edit.", "warn");
+
+  pushUndo();
+  if(selected.type==="marker") data.markers = data.markers.filter(x=>x.id!==selected.id);
+  if(selected.type==="road") data.roads = data.roads.filter(x=>x.id!==selected.id);
+  if(selected.type==="area") data.areas = data.areas.filter(x=>x.id!==selected.id);
+
+  setSelected(null);
+  rerender();
+  scheduleSave();
+  toast("Deleted.", "good");
+}
+
+/* =========================
+   Modal system
+========================= */
+function openModal(title, bodyHtml, footButtons){
+  modalTitle.textContent = title;
+  modalBody.innerHTML = bodyHtml;
+  modalFoot.innerHTML = "";
+  footButtons.forEach(btn=>{
+    const b = document.createElement("button");
+    b.className = btn.className || "btn";
+    b.textContent = btn.text;
+    b.onclick = btn.onClick;
+    modalFoot.appendChild(b);
+  });
+  modalBack.classList.add("open");
+}
+
+function closeModal(){
+  modalBack.classList.remove("open");
+  modalBody.innerHTML = "";
+  modalFoot.innerHTML = "";
+}
+$("modalClose").onclick = closeModal;
+modalBack.addEventListener("click",(e)=>{ if(e.target===modalBack) closeModal(); });
+
+function openCreateModal(pos){
+  if(!canEdit) return toast("Log in to edit.", "warn");
+  const x = pos?.x ?? 0;
+  const y = pos?.y ?? 0;
+
+  let chosenEmoji = "📍";
+  let kind = "poi";
+  let houseNum = "";
+
+  const emojiButtons = EMOJIS.map(em=>`<div class="emoji" data-em="${escapeHtml(em)}">${escapeHtml(em)}</div>`).join("");
+
+  openModal(
+    "Create Marker",
+    `
+      <div class="grid2">
+        <div>
+          <div class="label">Type</div>
+          <select id="mkKind" class="input">
+            <option value="house">House</option>
+            <option value="poi" selected>POI</option>
+            <option value="shop">Shop</option>
+            <option value="sheriff">Sheriff</option>
+            <option value="doctor">Doctor</option>
+            <option value="stable">Stable</option>
+            <option value="bank">Bank</option>
+            <option value="saloon">Saloon</option>
+            <option value="camp">Camp</option>
+            <option value="custom">Custom</option>
+          </select>
+        </div>
+        <div>
+          <div class="label">Color</div>
+          <input id="mkColor" type="color" class="input" value="${escapeHtml(colorInp.value || "#00e5ff")}"/>
+        </div>
+      </div>
+
+      <div id="houseRow" style="display:none">
+        <div class="label">House #</div>
+        <input id="mkHouse" class="input" placeholder="Auto or type a number"/>
+      </div>
+
+      <div>
+        <div class="label">Emoji</div>
+        <div class="emojiGrid" id="emojiGrid">${emojiButtons}</div>
+      </div>
+
+      <div>
+        <div class="label">Title</div>
+        <input id="mkTitle" class="input" placeholder="Name it (ex: Valentine Bank)"/>
+      </div>
+
+      <div>
+        <div class="label">Description</div>
+        <textarea id="mkDesc" class="input" placeholder="What is this place? Who owns it? Rules?"></textarea>
+      </div>
+
+      <div class="sub">Position: x:${x} y:${y}</div>
+    `,
+    [
+      { text:"Cancel", className:"btn", onClick: closeModal },
+      { text:"Create", className:"btn primary", onClick: ()=>{
+          const kindSel = $("mkKind").value;
+          const col = $("mkColor").value || "#00e5ff";
+          const title = ($("mkTitle").value||"").trim();
+          const desc = ($("mkDesc").value||"").trim();
+          const hn = ($("mkHouse").value||"").trim();
+
+          const id = nextId(data.markers);
+          const finalHouse = kindSel==="house" ? (hn || String(id)) : null;
+
+          pushUndo();
+          data.markers.push({
+            id,
+            kind: kindSel,
+            x, y,
+            color: col,
+            emoji: chosenEmoji,
+            houseNum: finalHouse,
+            title,
+            desc
+          });
+
+          closeModal();
+          rerender();
+          scheduleSave();
+          toast("Marker created.", "good");
+        }}
+    ]
+  );
+
+  // wiring
+  const kindEl = $("mkKind");
+  const houseRow = document.getElementById("houseRow");
+  function updateKind(){
+    houseRow.style.display = kindEl.value==="house" ? "block" : "none";
+  }
+  kindEl.addEventListener("change", updateKind);
+  updateKind();
+
+  document.querySelectorAll("#emojiGrid .emoji").forEach(el=>{
+    el.onclick = ()=>{
+      document.querySelectorAll("#emojiGrid .emoji").forEach(x=>x.classList.remove("selected"));
+      el.classList.add("selected");
+      chosenEmoji = el.dataset.em;
+    };
+  });
+  // default select
+  const first = document.querySelector("#emojiGrid .emoji");
+  if(first){ first.classList.add("selected"); chosenEmoji = first.dataset.em; }
+}
+
+function openEditorForSelected(){
+  if(!selected) return toast("Select something first.", "warn");
+  if(!canEdit) return toast("Log in to edit.", "warn");
+
+  const obj = findSelectedObject();
+  if(!obj) return toast("Selected item not found.", "bad");
+
+  const type = selected.type;
+  const title = (type==="marker") ? "Edit Marker" : (type==="road") ? "Edit Road" : "Edit Area";
+
+  openModal(
+    title,
+    `
+      <div class="grid2">
+        <div>
+          <div class="label">Color</div>
+          <input id="edColor" type="color" class="input" value="${escapeHtml(obj.color || "#00e5ff")}"/>
+        </div>
+        <div>
+          <div class="label">Title</div>
+          <input id="edTitle" class="input" value="${escapeHtml(obj.title || "")}" placeholder="Title"/>
+        </div>
+      </div>
+
+      ${(type==="marker") ? `
+        <div class="grid2">
+          <div>
+            <div class="label">Emoji</div>
+            <input id="edEmoji" class="input" value="${escapeHtml(obj.emoji || "")}" placeholder="Emoji (ex: 🏦)"/>
+          </div>
+          <div>
+            <div class="label">House # (only if house)</div>
+            <input id="edHouse" class="input" value="${escapeHtml(obj.houseNum || "")}" placeholder=""/>
+          </div>
+        </div>
+      ` : ``}
+
+      <div>
+        <div class="label">Description</div>
+        <textarea id="edDesc" class="input">${escapeHtml(obj.desc || "")}</textarea>
+      </div>
+    `,
+    [
+      { text:"Cancel", className:"btn", onClick: closeModal },
+      { text:"Save", className:"btn primary", onClick: ()=>{
+          pushUndo();
+          obj.color = $("edColor").value || "#00e5ff";
+          obj.title = ($("edTitle").value||"").trim();
+          obj.desc = ($("edDesc").value||"").trim();
+          if(type==="marker"){
+            obj.emoji = ($("edEmoji").value||"").trim();
+            obj.houseNum = ($("edHouse").value||"").trim() || obj.houseNum || null;
+          }
+          closeModal();
+          rerender();
+          scheduleSave();
+          toast("Saved changes.", "good");
+        }}
+    ]
+  );
+}
+
+/* =========================
+   Search
+========================= */
+function runSearch(q){
+  const query = (q||"").toLowerCase().trim();
+  results.innerHTML = "";
+  if(!query){
+    return;
+  }
+
+  const found = [];
+
+  data.markers.forEach(m=>{
+    const t = `${m.title||""} ${m.desc||""} ${m.kind||""} ${m.houseNum||""}`.toLowerCase();
+    if(t.includes(query)) found.push({type:"marker", id:m.id, title:m.title || (m.kind==="house" ? `House #${m.houseNum||m.id}` : "Marker"), meta:`${m.kind} • x:${m.x} y:${m.y}`});
+  });
+  data.roads.forEach(r=>{
+    const t = `${r.title||""} ${r.desc||""}`.toLowerCase();
+    if(t.includes(query)) found.push({type:"road", id:r.id, title:r.title || "Road", meta:`pts:${r.pts.length}`});
+  });
+  data.areas.forEach(a=>{
+    const t = `${a.title||""} ${a.desc||""}`.toLowerCase();
+    if(t.includes(query)) found.push({type:"area", id:a.id, title:a.title || "Area", meta:`pts:${a.pts.length}`});
+  });
+
+  if(!found.length){
+    results.innerHTML = `<div class="sub">No results.</div>`;
+    return;
+  }
+
+  found.slice(0,60).forEach(f=>{
+    const div = document.createElement("div");
+    div.className = "item";
+    div.innerHTML = `<div class="t">${escapeHtml(f.title)}</div><div class="m">${escapeHtml(f.meta)}</div>`;
+    div.onclick = ()=>{
+      // select and fly to
+      if(f.type==="marker"){
+        const m = data.markers.find(x=>x.id===f.id);
+        if(!m) return;
+        map.setView([m.y,m.x], Math.max(map.getZoom(), 0.5));
+      } else if(f.type==="road"){
+        const r = data.roads.find(x=>x.id===f.id);
+        if(!r) return;
+        map.fitBounds(L.polyline(r.pts).getBounds(), {padding:[40,40]});
+      } else {
+        const a = data.areas.find(x=>x.id===f.id);
+        if(!a) return;
+        map.fitBounds(L.polygon(a.pts).getBounds(), {padding:[40,40]});
+      }
+      toast("Jumped to result.", "good", 1200);
+    };
+    results.appendChild(div);
+  });
+}
+search.addEventListener("input", ()=> runSearch(search.value));
+
+/* =========================
+   Save/Load
+========================= */
 function loadLocal(){
   try{
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(LOCAL_KEY);
     if(!raw) return;
     const parsed = JSON.parse(raw);
     if(parsed && typeof parsed==="object"){
@@ -412,41 +900,10 @@ function loadLocal(){
 }
 
 function saveLocal(){
-  try{
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  }catch{}
+  try{ localStorage.setItem(LOCAL_KEY, JSON.stringify(data)); }catch{}
 }
 
-function scheduleSave(){
-  setSaved(false);
-  saveLocal();
-
-  if(saveTimer) clearTimeout(saveTimer);
-  saveTimer = setTimeout(async ()=>{
-    if(!USE_API) { setSaved(true); return; }
-    if(!canEdit) { setSaved(true); return; }
-
-    try{
-      isSaving = true;
-      const r = await fetch(`/api/save`, {
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({ mapId: MAP_ID, payload: data, message:`Auto-save ${MAP_ID}` })
-      });
-      const j = await r.json().catch(()=>null);
-      if(!r.ok) throw new Error(j?.error || "Save failed");
-      setSaved(true);
-    }catch(e){
-      setSaved(true);
-      console.warn(e);
-      alert("Save failed (check Vercel env vars + auth).");
-    }finally{
-      isSaving = false;
-    }
-  }, 600);
-}
-
-async function loadFromApi(){
+async function apiLoad(){
   try{
     const r = await fetch(`/api/load?mapId=${encodeURIComponent(MAP_ID)}`);
     const j = await r.json();
@@ -456,7 +913,40 @@ async function loadFromApi(){
   }
 }
 
-/** ====== Auth ====== **/
+async function apiSave(){
+  const r = await fetch("/api/save", {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({ mapId: MAP_ID, payload: data, message: `Auto-save ${MAP_ID}` })
+  });
+  const j = await r.json().catch(()=>null);
+  if(!r.ok) throw new Error(j?.error || "save failed");
+}
+
+function scheduleSave(){
+  setSaved(false);
+  saveLocal();
+
+  if(saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(async ()=>{
+    if(!USE_API || !canEdit){
+      setSaved(true);
+      return;
+    }
+    try{
+      await apiSave();
+      setSaved(true);
+    }catch(e){
+      console.warn(e);
+      setSaved(true);
+      toast("Save failed. Check Vercel env/auth.", "bad", 3400);
+    }
+  }, 650);
+}
+
+/* =========================
+   Auth
+========================= */
 async function refreshMe(){
   try{
     const r = await fetch("/api/me");
@@ -464,213 +954,129 @@ async function refreshMe(){
     me = j?.user || null;
     canEdit = !!j?.canEdit;
 
-    el("loginBtn").classList.toggle("hidden", !!me);
-    el("logoutBtn").classList.toggle("hidden", !me);
-    el("who").classList.toggle("hidden", !me);
-    el("who").textContent = me ? `Signed in: ${me.username} (${canEdit ? "Editor" : "Viewer"})` : "";
-
-    // Force viewer mode if not allowed
-    if(!canEdit){
-      if(mode!=="inspect") el("mode").value = "inspect";
-      mode = "inspect";
+    if(me){
+      loginBtn.style.display = "none";
+      logoutBtn.style.display = "inline-flex";
+      who.style.display = "block";
+      who.textContent = `Signed in: ${me.username} • ${canEdit ? "Editor" : "Viewer"}`;
+    }else{
+      loginBtn.style.display = "inline-flex";
+      logoutBtn.style.display = "none";
+      who.style.display = "none";
+      who.textContent = "";
     }
-    setModeLine();
-    renderAll();
-  }catch{
-    me = null; canEdit = false;
+
+    setPermPill();
+
+    // If lost edit perms, force inspect
+    if(!canEdit && mode!=="inspect") setMode("inspect");
+  }catch(e){
+    me=null; canEdit=false;
+    setPermPill();
   }
 }
 
-/** ====== Map interactions ====== **/
-el("mode").addEventListener("change", ()=>{
-  const newMode = el("mode").value;
-
-  // if they try to pick edit modes without permission, bounce
-  const needsEdit = ["select","marker","road","area","erase"].includes(newMode);
-  if(needsEdit && !canEdit){
-    el("mode").value = "inspect";
-    mode = "inspect";
-    alert("Viewer only. Log in with Discord to edit.");
-  } else {
-    mode = newMode;
-  }
-
-  // delete mode: set color black
-  if(mode==="erase") el("color").value = "#000000";
-
-  // cancel draw
-  currentLinePts = [];
-  if(currentLineLayer){ map.removeLayer(currentLineLayer); currentLineLayer=null; }
-  currentAreaPts = [];
-  if(currentAreaLayer){ map.removeLayer(currentAreaLayer); currentAreaLayer=null; }
-
-  setSelected(null);
-  setHaloMode();
-  setModeLine();
-  renderAll();
-});
-
-map.on("click",(e)=>{
-  const y = Math.round(e.latlng.lat);
-  const x = Math.round(e.latlng.lng);
-
-  if(mode==="inspect"){
-    setSelected(null);
-    return;
-  }
-
-  if(!canEdit) return;
-
-  if(mode==="marker"){
-    const kind = el("markerType").value;
-    const color = el("color").value || "#00E5FF";
-    const id = nextId(data.markers);
-
-    let houseNum = null;
-    if(kind==="house"){
-      const raw = String(el("houseNum").value || "").trim();
-      houseNum = raw ? raw : String(id);
-    }
-
-    const title = prompt("Title:", kind==="house" ? `House #${houseNum}` : "POI") || "";
-    const desc = prompt("Description:", "") || "";
-
-    data.markers.push({
-      id,
-      kind,
-      x,y,
-      color,
-      title:title.trim(),
-      desc:desc.trim(),
-      emoji:"",
-      houseNum
-    });
-    renderAll();
-    scheduleSave();
-    return;
-  }
-
-  if(mode==="road"){
-    currentLinePts.push([y,x]);
-    if(currentLineLayer) map.removeLayer(currentLineLayer);
-    currentLineLayer = L.polyline(currentLinePts, { weight:4, opacity:0.95, color: el("color").value || "#00E5FF" }).addTo(map);
-    return;
-  }
-
-  if(mode==="area"){
-    currentAreaPts.push([y,x]);
-    if(currentAreaLayer) map.removeLayer(currentAreaLayer);
-    currentAreaLayer = L.polygon(currentAreaPts, { weight:3, opacity:0.6, color: el("color").value || "#00E5FF", fillOpacity:0.12 }).addTo(map);
-    return;
-  }
-
-  if(mode==="select"){
-    setSelected(null);
-  }
-});
-
-/** ====== Buttons ====== **/
-el("toggleSidebar").onclick = ()=>{
-  el("sidebar").classList.toggle("closed");
-};
-
-el("finishRoad").onclick = ()=>{
-  if(!canEdit) return alert("Log in to edit.");
-  if(mode!=="road") return alert('Switch to "Draw Road" first.');
-  if(currentLinePts.length < 2) return alert("Add at least 2 points.");
-
-  const id = nextId(data.roads);
-  const obj = { id, color: el("color").value || "#00E5FF", pts: currentLinePts, title:"", desc:"" };
-  data.roads.push(obj);
-
-  currentLinePts = [];
-  if(currentLineLayer){ map.removeLayer(currentLineLayer); currentLineLayer=null; }
-
-  renderAll();
-  scheduleSave();
-
-  // optional immediate edit
-  const layer = L.polyline(obj.pts, {color:obj.color, weight:4, opacity:0.9}).addTo(roadsLayer);
-  editLineOrArea(obj, layer, "Road");
-};
-
-el("undoPoint").onclick = ()=>{
-  if(!canEdit) return alert("Log in to edit.");
-  if(mode==="road" && currentLinePts.length){
-    currentLinePts.pop();
-    if(currentLineLayer) map.removeLayer(currentLineLayer);
-    currentLineLayer = currentLinePts.length
-      ? L.polyline(currentLinePts, { weight:4, opacity:0.95, color: el("color").value || "#00E5FF" }).addTo(map)
-      : null;
-  }
-  if(mode==="area" && currentAreaPts.length){
-    currentAreaPts.pop();
-    if(currentAreaLayer) map.removeLayer(currentAreaLayer);
-    currentAreaLayer = currentAreaPts.length
-      ? L.polygon(currentAreaPts, { weight:3, opacity:0.6, color: el("color").value || "#00E5FF", fillOpacity:0.12 }).addTo(map)
-      : null;
-  }
-};
-
-el("finishArea").onclick = ()=>{
-  if(!canEdit) return alert("Log in to edit.");
-  if(mode!=="area") return alert('Switch to "Draw Area" first.');
-  if(currentAreaPts.length < 3) return alert("Need at least 3 points.");
-
-  const id = nextId(data.areas);
-  const obj = { id, color: el("color").value || "#00E5FF", pts: currentAreaPts, title:"", desc:"", kind:"county" };
-  data.areas.push(obj);
-
-  currentAreaPts = [];
-  if(currentAreaLayer){ map.removeLayer(currentAreaLayer); currentAreaLayer=null; }
-
-  renderAll();
-  scheduleSave();
-
-  // optional immediate edit
-  const layer = L.polygon(obj.pts, {color:obj.color, weight:3, opacity:0.55, fillOpacity:0.12}).addTo(areasLayer);
-  editLineOrArea(obj, layer, "Area");
-};
-
-el("closeLoop").onclick = ()=>{
-  if(mode==="road" && currentLinePts.length>2){
-    currentLinePts.push(currentLinePts[0]);
-    if(currentLineLayer) map.removeLayer(currentLineLayer);
-    currentLineLayer = L.polyline(currentLinePts, { weight:4, opacity:0.95, color: el("color").value || "#00E5FF" }).addTo(map);
-  }
-  if(mode==="area" && currentAreaPts.length>2){
-    currentAreaPts.push(currentAreaPts[0]);
-    if(currentAreaLayer) map.removeLayer(currentAreaLayer);
-    currentAreaLayer = L.polygon(currentAreaPts, { weight:3, opacity:0.6, color: el("color").value || "#00E5FF", fillOpacity:0.12 }).addTo(map);
-  }
-};
-
-el("deleteSelected").onclick = deleteSelected;
-el("clearSelect").onclick = ()=>setSelected(null);
-el("resetView").onclick = ()=>map.fitBounds(bounds);
-
-el("export").onclick = ()=>{
-  el("box").value = JSON.stringify(data, null, 2);
-};
-
-el("zIn").onclick = ()=>map.setZoom(map.getZoom()+0.5);
-el("zOut").onclick = ()=>map.setZoom(map.getZoom()-0.5);
-el("zHome").onclick = ()=>map.fitBounds(bounds);
-
-el("loginBtn").onclick = ()=>{ window.location.href = "/api/login"; };
-el("logoutBtn").onclick = async ()=>{
+loginBtn.onclick = ()=> location.href="/api/login";
+logoutBtn.onclick = async ()=>{
   await fetch("/api/logout");
   await refreshMe();
+  toast("Logged out.", "good");
 };
 
-/** ====== Boot ====== **/
+/* =========================
+   Buttons
+========================= */
+$("drawerBtn").onclick = ()=>{
+  // mobile drawer toggle
+  sidebar.classList.toggle("drawer-open");
+};
+$("compactBtn").onclick = ()=>{
+  // desktop compact toggle
+  sidebar.classList.toggle("compact");
+};
+
+$("modeInspect").onclick = ()=> setMode("inspect");
+$("modeSelect").onclick  = ()=> setMode("select");
+$("modeMarker").onclick  = ()=> setMode("marker");
+$("modeRoad").onclick    = ()=> setMode("road");
+$("modeArea").onclick    = ()=> setMode("area");
+$("modeErase").onclick   = ()=> setMode("erase");
+
+$("finishBtn").onclick = finishDraw;
+$("undoPointBtn").onclick = undoPoint;
+
+$("openCreate").onclick = ()=> openCreateModal(null);
+$("openSelected").onclick = openEditorForSelected;
+$("deleteSelected").onclick = deleteSelected;
+$("clearSelected").onclick = ()=> setSelected(null);
+
+$("undoBtn").onclick = undo;
+$("redoBtn").onclick = redo;
+
+$("homeBtn").onclick = ()=> map.fitBounds(bounds);
+
+$("exportBtn").onclick = ()=>{ ioBox.value = JSON.stringify(data, null, 2); toast("Exported JSON.", "good"); };
+$("importBtn").onclick = ()=>{
+  if(!canEdit) return toast("Log in to edit.", "warn");
+  try{
+    const parsed = JSON.parse(ioBox.value);
+    if(!parsed || typeof parsed!=="object") throw new Error("bad json");
+    if(!Array.isArray(parsed.markers) || !Array.isArray(parsed.roads) || !Array.isArray(parsed.areas)) throw new Error("needs {markers,roads,areas}");
+    pushUndo();
+    data = parsed;
+    rerender();
+    scheduleSave();
+    toast("Imported.", "good");
+  }catch(e){
+    toast("Import failed. Bad JSON.", "bad");
+  }
+};
+
+$("zIn").onclick = ()=> map.setZoom(map.getZoom()+0.5);
+$("zOut").onclick = ()=> map.setZoom(map.getZoom()-0.5);
+$("zHome").onclick = ()=> map.fitBounds(bounds);
+$("homeBtn").onclick = ()=> map.fitBounds(bounds);
+
+/* Keyboard shortcuts */
+window.addEventListener("keydown",(e)=>{
+  const key = e.key.toLowerCase();
+
+  if((e.ctrlKey || e.metaKey) && key==="z"){ e.preventDefault(); undo(); }
+  if((e.ctrlKey || e.metaKey) && (key==="y" || (e.shiftKey && key==="z"))){ e.preventDefault(); redo(); }
+
+  if(key==="escape"){
+    closeModal();
+    setSelected(null);
+    return;
+  }
+
+  if(key==="e"){
+    if(selected && canEdit) openEditorForSelected();
+  }
+
+  if(key==="delete" || key==="backspace"){
+    if(selected && canEdit) deleteSelected();
+  }
+});
+
+/* =========================
+   Boot
+========================= */
+function setSaved(ok){
+  savePill.textContent = ok ? "Saved" : "Saving…";
+}
+function start(){
+  setMode("inspect");
+  setPermPill();
+  updateUndoRedo();
+  rerender();
+}
 (async ()=>{
   loadLocal();
-  if(USE_API) await loadFromApi();
-  renderAll();
-  setSaved(true);
-  setHaloMode();
+  if(USE_API) await apiLoad();
+  start();
   await refreshMe();
+  toast("Loaded map.", "good", 1400);
 })();
 </script>
 </body>
