@@ -2,47 +2,47 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>RP Map (Builder + Viewer)</title>
+  <title>RDR Map Editor</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 
   <style>
     :root{
-      --bg:#070910;
-      --panel: rgba(14,16,22,.88);
+      --bg:#070a12;
+      --panel: rgba(16,18,26,.88);
       --stroke: rgba(255,255,255,.14);
-      --text:#fff;
+      --text: rgba(255,255,255,.96);
       --muted: rgba(255,255,255,.72);
       --muted2: rgba(255,255,255,.55);
-      --shadow: 0 18px 50px rgba(0,0,0,.55);
+      --shadow: 0 18px 55px rgba(0,0,0,.55);
       --r: 16px;
       --r2: 12px;
       --ui: system-ui,-apple-system,Segoe UI,Roboto,Arial;
       --mono: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace;
-      --accent:#7c3aed;
       --good:#22c55e;
       --warn:#f59e0b;
       --bad:#ef4444;
+      --accent:#7c3aed;
     }
 
     html, body, #map { height: 100%; margin: 0; background: var(--bg); }
+    #map { cursor: crosshair; outline:none; }
 
-    /* Make the cursor very visible on top of the map */
-    #map { cursor: crosshair; }
+    /* SUPER visible cursor halo */
     .mouse-halo{
       position: fixed;
       width: 22px; height: 22px;
       border-radius: 999px;
       border: 2px solid rgba(255,255,255,.95);
-      box-shadow: 0 0 0 4px rgba(124,58,237,.25), 0 8px 18px rgba(0,0,0,.55);
+      box-shadow: 0 0 0 4px rgba(124,58,237,.25), 0 10px 20px rgba(0,0,0,.55);
       pointer-events: none;
       transform: translate(-50%,-50%);
       z-index: 20000;
       mix-blend-mode: screen;
       display: none;
     }
-    .mouse-halo.on { display:block; }
+    .mouse-halo.on{ display:block; }
 
     /* Panels */
     .panel{
@@ -57,34 +57,24 @@
       font: 13px var(--ui);
       overflow: hidden;
     }
-
-    .panel-header{
-      padding: 12px 12px 10px;
+    .ph{
+      padding: 12px;
       border-bottom: 1px solid var(--stroke);
       display:flex; align-items:center; justify-content:space-between; gap:10px;
     }
-    .title{ display:flex; flex-direction:column; gap:2px; min-width:0; }
-    .title b{ font-size: 14px; letter-spacing:.2px; }
-    .title span{ font-size: 11px; color: var(--muted2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .ph b{ font-size: 14px; letter-spacing:.2px; }
+    .ph small{ color: var(--muted2); font-weight: 800; }
 
-    .pill{
-      display:inline-flex; gap:8px; align-items:center;
-      padding: 6px 10px;
-      border-radius: 999px;
-      border: 1px solid rgba(255,255,255,.18);
-      background: rgba(255,255,255,.06);
-      font-weight: 900;
-      font-size: 12px;
-      user-select:none;
-    }
-
-    .panel-body{ padding: 12px; }
-    .row{ display:flex; gap:8px; margin: 8px 0; }
-    .col{ display:flex; flex-direction:column; gap:8px; }
+    .pb{ padding: 12px; }
 
     label.small{
-      font-size: 11px; color: var(--muted2);
-      font-weight: 900; letter-spacing:.2px; text-transform: uppercase;
+      font-size: 11px;
+      color: var(--muted2);
+      font-weight: 900;
+      letter-spacing:.2px;
+      text-transform: uppercase;
+      display:block;
+      margin-bottom: 6px;
     }
 
     select, input, button, textarea{
@@ -98,31 +88,42 @@
       font: 800 13px var(--ui);
       outline: none;
     }
-    input[type="color"]{ padding: 0; height: 42px; border-radius: var(--r2); }
-    button{ cursor: pointer; transition: 120ms ease; }
-    button:hover{ background: rgba(255,255,255,.10); }
-    button:disabled{ opacity: .5; cursor:not-allowed; }
-
+    input[type="color"]{ padding: 0; height: 42px; }
     textarea{
-      height: 130px;
+      height: 120px;
       font: 11px var(--mono);
       font-weight: 650;
       background: rgba(0,0,0,.35);
+      resize: vertical;
     }
+    button{ cursor:pointer; transition:120ms ease; }
+    button:hover{ background: rgba(255,255,255,.10); }
+    button:disabled{ opacity:.5; cursor:not-allowed; }
 
+    .row{ display:flex; gap:8px; margin: 8px 0; }
+    .grid2{ display:grid; grid-template-columns: 1fr 1fr; gap:8px; }
+
+    .pill{
+      display:inline-flex; align-items:center; gap:8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.06);
+      font-weight: 900;
+      user-select:none;
+      white-space:nowrap;
+    }
     .divider{ height:1px; background: var(--stroke); margin: 10px 0; }
-    .hint{ color: var(--muted); font-size: 12px; line-height: 1.35; }
 
     /* Layout */
-    #controlPanel{ top: 10px; left: 10px; width: 360px; max-width: calc(100vw - 24px); }
-    #infoPanel{ top: 10px; right: 10px; width: 380px; max-width: calc(100vw - 24px); }
+    #left { top: 10px; left: 10px; width: 380px; max-width: calc(100vw - 24px); }
+    #right{ top: 10px; right: 10px; width: 410px; max-width: calc(100vw - 24px); }
 
-    /* Bottom bar (zoom/coords/editor) */
-    #hudBar{
+    #hud{
       position: fixed;
       left: 10px;
       bottom: 10px;
-      z-index: 10000;
+      z-index: 12000;
       display:flex;
       gap:10px;
       align-items:center;
@@ -132,256 +133,285 @@
       background: var(--panel);
       box-shadow: var(--shadow);
       backdrop-filter: blur(10px);
-      width: 520px;
       max-width: calc(100vw - 24px);
     }
-    #hudLeft{ flex:1; display:flex; flex-direction:column; gap:2px; min-width:0; }
-    #hudLeft b{ font-size: 13px; }
-    #hudLeft span{ font-size: 11px; color: var(--muted2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    #hudRight{ display:flex; gap:8px; flex-shrink:0; }
-    #hudRight button{ width:auto; padding: 10px 12px; }
-
-    .chip{
-      font: 900 11px var(--ui);
-      border-radius: 999px;
-      border: 1px solid rgba(255,255,255,.18);
-      background: rgba(255,255,255,.06);
-      padding: 4px 8px;
-      color: rgba(255,255,255,.9);
+    #hud .chip{
       display:inline-flex;
-      align-items:center;
       gap:8px;
-      margin-right: 6px;
-      user-select:none;
-    }
-
-    /* Info panel content */
-    .info-empty{ color: var(--muted); font-size: 12px; padding: 8px 0; }
-    .info-kv{ display:flex; gap:10px; align-items:flex-start; padding: 8px 0; border-bottom: 1px dashed rgba(255,255,255,.12); }
-    .info-kv:last-child{ border-bottom: 0; }
-    .info-kv b{
-      width: 92px; color: var(--muted2);
-      font-weight: 900; font-size: 11px; letter-spacing:.2px; text-transform: uppercase; flex-shrink:0;
-    }
-    .info-kv div{ flex:1; font: 650 12px var(--ui); color: var(--text); word-break: break-word; }
-    .tag{
-      display:inline-block;
-      padding: 2px 8px;
+      align-items:center;
+      padding: 6px 10px;
       border-radius: 999px;
       border: 1px solid rgba(255,255,255,.18);
       background: rgba(255,255,255,.06);
       font-weight: 900;
-      font-size: 11px;
-      margin-right: 6px;
-      margin-bottom: 6px;
-      color: rgba(255,255,255,.9);
+      color: rgba(255,255,255,.92);
+      user-select:none;
+      white-space:nowrap;
+    }
+    #hud button{ width:auto; padding: 10px 12px; }
+
+    /* Emoji picker */
+    .emoji-grid{
+      display:grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap:6px;
+      margin-top: 8px;
+    }
+    .emoji-btn{
+      padding: 10px 0;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      font-size: 18px;
+      line-height: 1;
+    }
+    .emoji-btn.active{
+      outline: 2px solid rgba(124,58,237,.7);
+      background: rgba(124,58,237,.18);
     }
 
-    /* Marker icons */
-    .house-badge{
-      width: 30px; height: 30px;
-      border-radius: 999px;
-      background: rgba(10,12,16,.92);
-      color:#fff;
+    /* List */
+    .list{
+      max-height: 220px;
+      overflow:auto;
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 12px;
+      background: rgba(0,0,0,.22);
+    }
+    .item{
+      padding: 10px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+      cursor:pointer;
+    }
+    .item:last-child{ border-bottom:0; }
+    .item:hover{ background: rgba(255,255,255,.06); }
+    .item .ic{
+      width: 34px; height: 34px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
       display:grid;
       place-items:center;
-      border: 2px solid #fff;
-      box-shadow: 0 2px 14px rgba(0,0,0,.6);
-      font: 900 14px/1 var(--ui);
-      user-select:none;
+      font-size: 18px;
+      flex-shrink:0;
     }
-    .badge{
-      width: 30px; height: 30px;
+    .item b{ display:block; font-size: 13px; }
+    .item small{ display:block; color: var(--muted2); font-weight: 800; margin-top: 2px; }
+
+    /* Map object styling */
+    .leaflet-control-zoom a{
+      background: rgba(16,18,26,.92) !important;
+      color:#fff !important;
+      border: 1px solid rgba(255,255,255,.14) !important;
+      width: 36px !important; height: 36px !important;
+      line-height: 34px !important;
+    }
+    .leaflet-control-zoom { box-shadow: var(--shadow) !important; border-radius: 12px !important; overflow:hidden; }
+    .leaflet-popup-content { margin: 12px 14px; }
+
+    /* Marker */
+    .m-badge{
+      width: 34px; height: 34px;
       border-radius: 999px;
       display:grid;
       place-items:center;
       border: 2px solid rgba(255,255,255,.95);
-      box-shadow: 0 2px 14px rgba(0,0,0,.6);
-      font: 900 14px/1 var(--ui);
-      user-select:none;
       background: rgba(10,12,16,.72);
+      box-shadow: 0 2px 16px rgba(0,0,0,.6);
+      user-select:none;
+      font: 900 14px/1 var(--ui);
+      color: rgba(255,255,255,.95);
+    }
+    .m-emoji{
+      width: 34px; height: 34px;
+      border-radius: 14px;
+      display:grid;
+      place-items:center;
+      border: 2px solid rgba(255,255,255,.92);
+      background: rgba(10,12,16,.72);
+      box-shadow: 0 2px 16px rgba(0,0,0,.6);
+      user-select:none;
+      font-size: 18px;
     }
 
-    /* Leaflet tweaks: make zoom smoother & controls nicer */
-    .leaflet-control-zoom a{
-      background: rgba(14,16,22,.92) !important;
-      color: #fff !important;
-      border: 1px solid rgba(255,255,255,.14) !important;
-      width: 36px !important;
-      height: 36px !important;
-      line-height: 34px !important;
+    @media (max-width: 980px){
+      #right { top:auto; bottom: 86px; right:10px; width: 410px; }
     }
-    .leaflet-control-zoom { box-shadow: var(--shadow) !important; border-radius: 12px !important; overflow:hidden; }
-    .leaflet-container{ outline:none; }
-    .leaflet-popup-content{ margin: 12px 14px; }
-
-    @media (max-width: 920px){
-      #infoPanel{ top:auto; bottom: 90px; right: 10px; width: 360px; }
-      #hudBar{ width: calc(100vw - 24px); }
+    @media (max-width: 520px){
+      #left, #right{ width: calc(100vw - 24px); }
+      #right{ right:10px; left:10px; }
+      .emoji-grid{ grid-template-columns: repeat(7, 1fr); }
     }
   </style>
 </head>
-
 <body>
   <div id="map"></div>
-  <div class="mouse-halo" id="mouseHalo"></div>
+  <div class="mouse-halo" id="halo"></div>
 
-  <!-- LEFT: Control Panel -->
-  <aside class="panel" id="controlPanel">
-    <div class="panel-header">
-      <div class="title">
-        <b>RP Map</b>
-        <span id="mapSubtitle">Viewer mode • Click things to inspect</span>
+  <!-- LEFT -->
+  <aside class="panel" id="left">
+    <div class="ph">
+      <div>
+        <b>RP Map</b><br>
+        <small id="sub">Viewer • Click things to inspect</small>
       </div>
       <div class="pill" id="savePill">Saved</div>
     </div>
+    <div class="pb">
+      <label class="small">Search</label>
+      <input id="q" placeholder="Search houses, POIs, roads, counties…" />
 
-    <div class="panel-body">
-      <div class="col">
-        <div>
-          <label class="small">Search</label>
-          <input id="search" placeholder="Search houses, POIs, roads, counties..." />
+      <div class="row">
+        <div style="flex:1">
+          <label class="small">Mode</label>
+          <select id="mode">
+            <option value="inspect">Inspect (Viewer)</option>
+            <option value="select" disabled>Select / Move (Editor)</option>
+            <option value="marker" disabled>Place Marker (Editor)</option>
+            <option value="road" disabled>Draw Road (Editor)</option>
+            <option value="border" disabled>Draw Border (Editor)</option>
+            <option value="area" disabled>Draw County/Area (Editor)</option>
+            <option value="erase" disabled>Erase (Editor)</option>
+          </select>
         </div>
+        <div style="width:130px">
+          <label class="small">Color</label>
+          <input id="color" type="color" value="#ffffff" />
+        </div>
+      </div>
 
+      <div class="row">
+        <div style="flex:1">
+          <label class="small">Marker Style</label>
+          <select id="markerStyle">
+            <option value="house">House #</option>
+            <option value="emoji">Emoji</option>
+          </select>
+        </div>
+        <div style="width:130px">
+          <label class="small">House #</label>
+          <input id="houseNum" type="number" min="1" placeholder="Auto" />
+        </div>
+      </div>
+
+      <div id="emojiBlock" style="display:none;">
+        <label class="small">Pick Emoji</label>
+        <div class="emoji-grid" id="emojiGrid"></div>
         <div class="row">
-          <div style="flex:1">
-            <label class="small">Mode</label>
-            <select id="mode">
-              <option value="inspect">Inspect (Viewer)</option>
-              <option value="select" disabled>Select / Move (Editor)</option>
-              <option value="marker" disabled>Place Marker (Editor)</option>
-              <option value="road" disabled>Draw Road (Editor)</option>
-              <option value="area" disabled>Draw Area / County (Editor)</option>
-              <option value="erase" disabled>Erase (Editor)</option>
-            </select>
-          </div>
-          <div style="width:120px">
-            <label class="small">Color</label>
-            <input id="color" type="color" value="#ffffff" />
-          </div>
+          <input id="customEmoji" placeholder="Add emoji (paste here) e.g. 🏦" />
+          <button id="addEmoji" style="width:140px">Add</button>
         </div>
+      </div>
 
-        <div class="row">
-          <div style="flex:1">
-            <label class="small">Marker Type</label>
-            <select id="markerType">
-              <option value="house">House #</option>
-              <option value="poi">POI</option>
-              <option value="shop">Shop</option>
-              <option value="sheriff">Sheriff</option>
-              <option value="stable">Stable</option>
-              <option value="camp">Camp</option>
-              <option value="custom">Custom</option>
-            </select>
-          </div>
-          <div style="width:120px">
-            <label class="small">House #</label>
-            <input id="houseNumber" type="number" min="1" placeholder="Auto" />
-          </div>
-        </div>
+      <div class="grid2" style="margin-top:10px;">
+        <button id="finish" disabled>Finish Shape</button>
+        <button id="undo" disabled>Undo Point</button>
+        <button id="del" disabled>Delete Selected</button>
+        <button id="clearSel" disabled>Clear Select</button>
+      </div>
 
-        <div class="row">
-          <button id="finishRoad" disabled>Finish Road</button>
-          <button id="undoPoint" disabled>Undo Point</button>
-        </div>
+      <div class="row">
+        <button id="resetView">Reset View</button>
+        <button id="export">Export</button>
+      </div>
+      <div class="row">
+        <button id="import">Import</button>
+        <button id="clearAll" disabled>Clear All</button>
+      </div>
 
-        <div class="row">
-          <button id="finishArea" disabled>Finish Area</button>
-          <button id="closeArea" disabled>Close Loop</button>
-        </div>
+      <div class="divider"></div>
 
-        <div class="row">
-          <button id="deleteSelected" disabled>Delete Selected</button>
-          <button id="clearSelection" disabled>Clear Select</button>
-        </div>
+      <label class="small">Export / Import JSON</label>
+      <textarea id="box" placeholder="Export JSON here or paste JSON to import…"></textarea>
 
-        <div class="row">
-          <button id="resetView">Reset View</button>
-          <button id="exportJson">Export</button>
-        </div>
+      <div class="divider"></div>
 
-        <div class="row">
-          <button id="importJson">Import</button>
-          <button id="clearAll" disabled>Clear All (Editor)</button>
-        </div>
+      <label class="small">Quick List</label>
+      <div class="list" id="list"></div>
 
-        <div class="divider"></div>
-
-        <label class="small">Import / Export Box</label>
-        <textarea id="box" placeholder="Export JSON here or paste JSON to import..."></textarea>
-
-        <div class="hint" style="margin-top:8px">
-          Tips:
-          <br>• Mouse wheel / trackpad zoom is tuned smoother.
-          <br>• Cursor halo shows exactly where you’re pointing.
-          <br>• Later: Vercel autosave + Discord updates plug in cleanly.
-        </div>
+      <div class="divider"></div>
+      <div style="color:var(--muted); font-size:12px; line-height:1.35">
+        Controls:
+        <br>• <b>Wheel</b> zoom • <b>Drag</b> pan
+        <br>• <b>+</b>/<b>-</b> zoom • <b>0</b> reset
+        <br>• <b>ESC</b> cancel drawing
       </div>
     </div>
   </aside>
 
-  <!-- RIGHT: Info Panel -->
-  <aside class="panel" id="infoPanel">
-    <div class="panel-header">
-      <div class="title">
-        <b>Info</b>
-        <span id="infoSubtitle">Click something to view details</span>
+  <!-- RIGHT -->
+  <aside class="panel" id="right">
+    <div class="ph">
+      <div>
+        <b>Info</b><br>
+        <small id="infoSub">Click a marker/road/border/county</small>
       </div>
-      <button id="closeInfo" style="width:auto; padding:8px 10px;">Close</button>
+      <button id="closeInfo" style="width:auto; padding:8px 10px;">Clear</button>
     </div>
-    <div class="panel-body" id="infoBody">
-      <div class="info-empty">Nothing selected yet.</div>
+    <div class="pb" id="info">
+      <div style="color:var(--muted); font-size:12px;">Nothing selected yet.</div>
     </div>
   </aside>
 
-  <!-- Bottom HUD (coords + zoom + editor lock + zoom buttons) -->
-  <div id="hudBar">
-    <div id="hudLeft">
-      <b id="editTitle">Viewer Mode</b>
-      <span id="hudLine">
-        <span class="chip" id="chipXY">x: — y: —</span>
-        <span class="chip" id="chipZoom">zoom: —</span>
-        <span class="chip" id="chipHint">Scroll to zoom • Drag to pan</span>
-      </span>
-    </div>
-    <div id="hudRight">
-      <button id="zoomOut">−</button>
-      <button id="zoomIn">+</button>
-      <button id="btnSignIn">Sign in</button>
-      <button id="btnSignOut" disabled>Sign out</button>
-    </div>
+  <!-- HUD -->
+  <div id="hud">
+    <span class="chip" id="chipXY">x: — y: —</span>
+    <span class="chip" id="chipZoom">zoom: —</span>
+    <span class="chip" id="chipMode">mode: inspect</span>
+    <button id="zOut">−</button>
+    <button id="zIn">+</button>
+    <button id="signIn">Sign in</button>
+    <button id="signOut" disabled>Sign out</button>
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <script>
-    // ====== CONFIG ======
+    // =========================
+    // CONFIG
+    // =========================
+    const MAP_IMAGE_URL = "./assets/rdo-map.jpeg";
+
+    // Update these if your map image has a different size:
     const MAP_W = 1536;
     const MAP_H = 1152;
-    const MAP_IMAGE_URL = "./assets/rdo-map.jpeg";
-    const STORAGE_KEY = "rp_map_builder_shell_v2";
 
-    // ====== DATA MODEL ======
-    // roads: { id, kind:'road'|'border', name, color, pts:[[y,x]...], meta:{} }
-    // areas: { id, kind:'county'|'area', name, color, pts:[[y,x]...], meta:{} }
-    // markers:{ id, kind:'house'|'poi'..., name, x,y,color, houseNumber?, meta:{} }
-    let data = { markers: [], roads: [], areas: [], meta: { mapId: "default", updatedAt: null } };
+    // SAVE SETTINGS
+    const STORAGE_KEY = "rdr_map_editor_v3";
 
-    // ====== AUTH STUB ======
-    let isEditor = false;
+    // OPTIONAL VERCEL API (only works on Vercel deploy, not GitHub Pages)
+    const USE_VERCEL_API = false; // set true when you're on Vercel and have /api/load & /api/save
+    const MAP_ID = "rdo_main";
+    let editorCode = ""; // will send as header "x-editor-code" if you enable it server-side
 
-    // ====== MAP SETUP (smooth zoom) ======
+    // =========================
+    // DATA MODEL
+    // =========================
+    // markers: {id, kind:'house'|'emoji', x,y, color, houseNumber?, emoji?, name, meta:{description,notes,links}}
+    // lines:   {id, kind:'road'|'border', color, name, pts:[[y,x]...], meta:{}}
+    // areas:   {id, kind:'county'|'area', color, name, pts:[[y,x]...], meta:{}}
+    let data = {
+      meta: { mapId: MAP_ID, updatedAt: null },
+      markers: [],
+      lines: [],
+      areas: []
+    };
+
+    // =========================
+    // MAP
+    // =========================
     const map = L.map("map", {
       crs: L.CRS.Simple,
       minZoom: -3,
       maxZoom: 4,
       zoomSnap: 0.25,
       zoomDelta: 0.25,
-      wheelPxPerZoomLevel: 90,   // smoother wheel zoom
-      smoothWheelZoom: true,     // leaflet internal uses ease better in some builds
-      smoothSensitivity: 1.2,
+      wheelPxPerZoomLevel: 90,
       inertia: true,
-      inertiaDeceleration: 2500,
+      inertiaDeceleration: 2400,
       zoomControl: true
     });
 
@@ -390,309 +420,477 @@
     map.fitBounds(bounds);
     map.setMaxBounds(L.latLngBounds(bounds).pad(0.25));
 
-    // ====== LAYERS ======
-    const layerHouses = L.layerGroup().addTo(map);
-    const layerPois = L.layerGroup().addTo(map);
-    const layerRoads = L.layerGroup().addTo(map);
+    const layerMarkers = L.layerGroup().addTo(map);
+    const layerRoads   = L.layerGroup().addTo(map);
     const layerBorders = L.layerGroup().addTo(map);
-    const layerCounties = L.layerGroup().addTo(map);
+    const layerAreas   = L.layerGroup().addTo(map);
 
-    // ====== UI ======
-    const modeSel = document.getElementById("mode");
-    const markerTypeSel = document.getElementById("markerType");
-    const houseNumberInp = document.getElementById("houseNumber");
-    const colorInp = document.getElementById("color");
-    const searchInp = document.getElementById("search");
-    const box = document.getElementById("box");
+    // Cursor halo
+    const halo = document.getElementById("halo");
+    const mapEl = document.getElementById("map");
+    mapEl.addEventListener("mouseenter", ()=>halo.classList.add("on"));
+    mapEl.addEventListener("mouseleave", ()=>halo.classList.remove("on"));
+    mapEl.addEventListener("mousemove", (e)=>{
+      halo.style.left = e.clientX + "px";
+      halo.style.top  = e.clientY + "px";
+    });
 
+    // =========================
+    // UI
+    // =========================
     const savePill = document.getElementById("savePill");
-    const mapSubtitle = document.getElementById("mapSubtitle");
-    const infoBody = document.getElementById("infoBody");
-    const infoSubtitle = document.getElementById("infoSubtitle");
+    const sub = document.getElementById("sub");
+    const modeSel = document.getElementById("mode");
+    const colorInp = document.getElementById("color");
+    const qInp = document.getElementById("q");
+    const box = document.getElementById("box");
+    const listEl = document.getElementById("list");
 
-    const btnSignIn = document.getElementById("btnSignIn");
-    const btnSignOut = document.getElementById("btnSignOut");
-    const editTitle = document.getElementById("editTitle");
+    const markerStyleSel = document.getElementById("markerStyle");
+    const houseNumInp = document.getElementById("houseNum");
+    const emojiBlock = document.getElementById("emojiBlock");
+    const emojiGrid = document.getElementById("emojiGrid");
+    const customEmoji = document.getElementById("customEmoji");
+    const addEmojiBtn = document.getElementById("addEmoji");
+
+    const finishBtn = document.getElementById("finish");
+    const undoBtn = document.getElementById("undo");
+    const delBtn = document.getElementById("del");
+    const clearSelBtn = document.getElementById("clearSel");
+    const clearAllBtn = document.getElementById("clearAll");
+
+    const resetViewBtn = document.getElementById("resetView");
+    const exportBtn = document.getElementById("export");
+    const importBtn = document.getElementById("import");
+
+    const info = document.getElementById("info");
+    const infoSub = document.getElementById("infoSub");
+    const closeInfoBtn = document.getElementById("closeInfo");
 
     const chipXY = document.getElementById("chipXY");
     const chipZoom = document.getElementById("chipZoom");
+    const chipMode = document.getElementById("chipMode");
+    const zIn = document.getElementById("zIn");
+    const zOut = document.getElementById("zOut");
+    const signInBtn = document.getElementById("signIn");
+    const signOutBtn = document.getElementById("signOut");
 
-    const zoomInBtn = document.getElementById("zoomIn");
-    const zoomOutBtn = document.getElementById("zoomOut");
+    // =========================
+    // EMOJI SET (clickable)
+    // Add more here anytime.
+    // =========================
+    let EMOJIS = [
+      "📍","🏠","🏦","🏪","🍻","🍽️","🧱","⛪","🏥","🚔","⭐","🧨","💰","🧪","🛒","🐎",
+      "⛺","🪓","🌲","⛰️","🌊","🐊","🐻","🐺","🦌","🎯","📦","🗺️","⚒️","🧷","🪙","🔒"
+    ];
+    let selectedEmoji = "📍";
 
-    const btnFinishRoad = document.getElementById("finishRoad");
-    const btnUndoPoint = document.getElementById("undoPoint");
-    const btnFinishArea = document.getElementById("finishArea");
-    const btnCloseArea = document.getElementById("closeArea");
-    const btnDeleteSelected = document.getElementById("deleteSelected");
-    const btnClearSelection = document.getElementById("clearSelection");
-    const btnClearAll = document.getElementById("clearAll");
+    function renderEmojiPicker(){
+      emojiGrid.innerHTML = "";
+      EMOJIS.forEach(e=>{
+        const b = document.createElement("button");
+        b.className = "emoji-btn" + (e === selectedEmoji ? " active" : "");
+        b.type = "button";
+        b.textContent = e;
+        b.onclick = ()=>{
+          selectedEmoji = e;
+          renderEmojiPicker();
+        };
+        emojiGrid.appendChild(b);
+      });
+    }
+    renderEmojiPicker();
 
-    // ====== Cursor halo ======
-    const halo = document.getElementById("mouseHalo");
-    const mapEl = document.getElementById("map");
-    mapEl.addEventListener("mouseenter", () => halo.classList.add("on"));
-    mapEl.addEventListener("mouseleave", () => halo.classList.remove("on"));
-    mapEl.addEventListener("mousemove", (e) => {
-      halo.style.left = e.clientX + "px";
-      halo.style.top = e.clientY + "px";
+    addEmojiBtn.onclick = ()=>{
+      const e = (customEmoji.value || "").trim();
+      if (!e) return;
+      // Keep it simple: only accept 1-3 chars (emoji can be multi-codepoint, but this is fine)
+      if (e.length > 6) return alert("That looks too long. Paste a single emoji.");
+      if (!EMOJIS.includes(e)) EMOJIS.unshift(e);
+      selectedEmoji = e;
+      customEmoji.value = "";
+      renderEmojiPicker();
+      scheduleSave();
+    };
+
+    markerStyleSel.addEventListener("change", ()=>{
+      const v = markerStyleSel.value;
+      emojiBlock.style.display = (v === "emoji") ? "block" : "none";
     });
 
-    // ====== Helpers ======
-    function escapeHtml(s){
-      return String(s ?? "")
-        .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
-        .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+    // =========================
+    // AUTH (front-end lock)
+    // =========================
+    let isEditor = false;
+
+    function setEditorMode(on){
+      isEditor = on;
+
+      // enable/disable editor modes
+      const editorModes = new Set(["select","marker","road","border","area","erase"]);
+      for (const opt of modeSel.options){
+        opt.disabled = editorModes.has(opt.value) ? !isEditor : false;
+      }
+      if (!isEditor) modeSel.value = "inspect";
+
+      finishBtn.disabled = !isEditor;
+      undoBtn.disabled = !isEditor;
+      delBtn.disabled = !isEditor;
+      clearSelBtn.disabled = !isEditor;
+      clearAllBtn.disabled = !isEditor;
+
+      signInBtn.disabled = isEditor;
+      signOutBtn.disabled = !isEditor;
+
+      sub.textContent = isEditor
+        ? "Editor • Place emoji markers, draw roads/borders/counties"
+        : "Viewer • Click things to inspect";
+
+      chipMode.textContent = `mode: ${modeSel.value}`;
+      render();
     }
+
+    signInBtn.onclick = ()=>{
+      const code = prompt("Editor passcode:");
+      if (!code) return;
+      // you can enforce a client check if you want:
+      // if (code !== "1234") return alert("Wrong code");
+      editorCode = code; // used for Vercel API header if enabled
+      setEditorMode(true);
+    };
+    signOutBtn.onclick = ()=>{
+      editorCode = "";
+      setEditorMode(false);
+    };
+
+    // =========================
+    // SAVING
+    // =========================
     function setSaved(ok){
-      savePill.textContent = ok ? "Saved" : "Saving...";
+      savePill.textContent = ok ? "Saved" : "Saving…";
       savePill.style.opacity = ok ? "0.9" : "1";
     }
+
     function saveLocal(){
       try{
         data.meta.updatedAt = new Date().toISOString();
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-        setSaved(true);
       }catch{}
     }
-    function loadLocal(){
+
+    async function saveServer(){
+      if (!USE_VERCEL_API) return true;
+      try{
+        const r = await fetch("/api/save", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(editorCode ? { "x-editor-code": editorCode } : {})
+          },
+          body: JSON.stringify({ mapId: MAP_ID, payload: data, message: `Auto-save ${MAP_ID}` })
+        });
+        const j = await r.json().catch(()=>null);
+        if (!r.ok) throw new Error(j?.error || "Save failed");
+        return true;
+      }catch(e){
+        console.warn("Server save failed:", e);
+        return false;
+      }
+    }
+
+    let saveTimer = null;
+    function scheduleSave(){
+      setSaved(false);
+      if (saveTimer) clearTimeout(saveTimer);
+      saveTimer = setTimeout(async ()=>{
+        saveLocal();
+        await saveServer();
+        setSaved(true);
+        rebuildList();
+      }, 550);
+    }
+
+    async function loadServer(){
+      const r = await fetch(`/api/load?mapId=${encodeURIComponent(MAP_ID)}`);
+      const j = await r.json();
+      if (j?.ok && j?.payload) return j.payload;
+      return null;
+    }
+
+    async function bootLoad(){
+      // Try server if enabled
+      if (USE_VERCEL_API){
+        const s = await loadServer();
+        if (s && typeof s === "object") {
+          data = s;
+          setSaved(true);
+          render();
+          rebuildList();
+          return;
+        }
+      }
+      // Fallback: local
       try{
         const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return;
-        const parsed = JSON.parse(raw);
-        if (!parsed || typeof parsed !== "object") return;
-        if (!Array.isArray(parsed.markers) || !Array.isArray(parsed.roads) || !Array.isArray(parsed.areas)) return;
-        data = parsed;
+        if (raw){
+          const parsed = JSON.parse(raw);
+          if (parsed && Array.isArray(parsed.markers) && Array.isArray(parsed.lines) && Array.isArray(parsed.areas)) {
+            data = parsed;
+          }
+        }
       }catch{}
+      setSaved(true);
+      render();
+      rebuildList();
     }
-    function nextHouseNumber(){
-      const nums = data.markers.filter(m=>m.kind==="house").map(m=>m.houseNumber||0);
-      let n = 1;
-      while (nums.includes(n)) n++;
-      return n;
+
+    // =========================
+    // HELPERS
+    // =========================
+    function esc(s){
+      return String(s ?? "")
+        .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;").replaceAll("'","&#039;");
     }
     function newId(prefix){
       return `${prefix}-${Math.random().toString(16).slice(2,8)}-${Date.now().toString(16).slice(-4)}`;
     }
-
-    function setEditorMode(on){
-      isEditor = on;
-      for (const opt of modeSel.options){
-        const editorOnly = ["select","marker","road","area","erase"];
-        opt.disabled = editorOnly.includes(opt.value) ? !isEditor : false;
-      }
-      if (!isEditor) modeSel.value = "inspect";
-
-      btnFinishRoad.disabled = !isEditor;
-      btnUndoPoint.disabled = !isEditor;
-      btnFinishArea.disabled = !isEditor;
-      btnCloseArea.disabled = !isEditor;
-      btnDeleteSelected.disabled = !isEditor;
-      btnClearSelection.disabled = !isEditor;
-      btnClearAll.disabled = !isEditor;
-
-      btnSignIn.disabled = isEditor;
-      btnSignOut.disabled = !isEditor;
-
-      editTitle.textContent = isEditor ? "Editor Mode" : "Viewer Mode";
-      mapSubtitle.textContent = isEditor
-        ? "Editor mode • Create markers, roads, borders, counties"
-        : "Viewer mode • Click things to inspect";
+    function nextHouse(){
+      const nums = data.markers.filter(m=>m.kind==="house").map(m=>m.houseNumber||0);
+      let n=1; while(nums.includes(n)) n++;
+      return n;
     }
 
-    function iconForMarker(m){
+    function markerIcon(m){
       const color = m.color || "#ffffff";
       if (m.kind === "house"){
         const num = m.houseNumber ?? 1;
         return L.divIcon({
           className:"",
-          html:`<div class="house-badge" style="border-color:${color}">${escapeHtml(num)}</div>`,
-          iconSize:[30,30],
-          iconAnchor:[15,15]
+          html:`<div class="m-badge" style="border-color:${color}">${esc(num)}</div>`,
+          iconSize:[34,34],
+          iconAnchor:[17,17]
         });
       }
-      const glyph =
-        m.kind === "poi" ? "📍" :
-        m.kind === "shop" ? "🛒" :
-        m.kind === "sheriff" ? "★" :
-        m.kind === "stable" ? "🐎" :
-        m.kind === "camp" ? "⛺" :
-        "•";
-
+      const emoji = m.emoji || "📍";
       return L.divIcon({
         className:"",
-        html:`<div class="badge" style="border-color:${color}; color:${color}">${glyph}</div>`,
-        iconSize:[30,30],
-        iconAnchor:[15,15]
+        html:`<div class="m-emoji" style="border-color:${color}">${esc(emoji)}</div>`,
+        iconSize:[34,34],
+        iconAnchor:[17,17]
       });
     }
 
-    function openInfo(obj){
-      const tags = [];
-      if (obj.kind) tags.push(obj.kind);
-      const meta = obj.meta && typeof obj.meta === "object" ? obj.meta : {};
-
-      infoSubtitle.textContent = obj.kind ? `${obj.kind.toUpperCase()} • ${obj.id}` : "Selected";
-      infoBody.innerHTML = `
-        ${tags.length ? `<div style="margin-bottom:8px">${tags.map(t=>`<span class="tag">${escapeHtml(t)}</span>`).join("")}</div>` : ""}
-
-        <div class="info-kv"><b>Name</b><div>${escapeHtml(obj.name || "(unnamed)")}</div></div>
-        <div class="info-kv"><b>Color</b><div>${escapeHtml(obj.color || "#ffffff")}</div></div>
-
-        ${obj.kind === "house" ? `<div class="info-kv"><b>House #</b><div>${escapeHtml(obj.houseNumber ?? "")}</div></div>` : ""}
-
-        ${(obj.x != null && obj.y != null) ? `<div class="info-kv"><b>Coords</b><div>x:${escapeHtml(obj.x)} y:${escapeHtml(obj.y)}</div></div>` : ""}
-
-        ${obj.pts ? `<div class="info-kv"><b>Points</b><div>${escapeHtml(obj.pts.length)}</div></div>` : ""}
-
-        <div class="info-kv"><b>Description</b><div>${escapeHtml(meta.description || "")}</div></div>
-        <div class="info-kv"><b>Notes</b><div>${escapeHtml(meta.notes || "")}</div></div>
-
-        <div class="info-kv"><b>Raw Meta</b><div><pre style="margin:0; white-space:pre-wrap; font:11px var(--mono); color:rgba(255,255,255,.85)">${escapeHtml(JSON.stringify(meta, null, 2))}</pre></div></div>
-      `;
-    }
-
-    // ====== Selection & drawing state ======
-    let selected = null; // { type:'marker'|'road'|'area', id, layer, obj }
+    // =========================
+    // RENDER + SELECTION
+    // =========================
+    let selected = null; // {type:'marker'|'line'|'area', id, obj, layer}
     let drawPts = [];
     let drawPreview = null;
 
     function clearSelection(){
       selected = null;
-      infoSubtitle.textContent = "Click something to view details";
-      infoBody.innerHTML = `<div class="info-empty">Nothing selected yet.</div>`;
+      infoSub.textContent = "Click a marker/road/border/county";
+      info.innerHTML = `<div style="color:var(--muted); font-size:12px;">Nothing selected yet.</div>`;
+    }
+
+    function openInfoFor(sel){
+      const o = sel.obj;
+      const meta = (o.meta && typeof o.meta === "object") ? o.meta : (o.meta = {});
+      const title = o.name || "(unnamed)";
+      const kind =
+        sel.type === "marker" ? (o.kind === "house" ? "HOUSE" : "MARKER") :
+        sel.type === "line" ? (o.kind === "border" ? "BORDER" : "ROAD") :
+        "COUNTY/AREA";
+
+      infoSub.textContent = `${kind} • ${o.id}`;
+
+      info.innerHTML = `
+        <label class="small">Name</label>
+        <input id="f_name" value="${esc(o.name || "")}" placeholder="Name…" />
+
+        <div class="row">
+          <div style="flex:1">
+            <label class="small">Color</label>
+            <input id="f_color" type="color" value="${esc(o.color || "#ffffff")}" />
+          </div>
+          <div style="width:160px">
+            <label class="small">Type</label>
+            <input value="${esc(kind)}" disabled />
+          </div>
+        </div>
+
+        ${sel.type === "marker" && o.kind === "house" ? `
+          <label class="small">House #</label>
+          <input id="f_house" type="number" min="1" value="${esc(o.houseNumber ?? "")}" />
+        ` : ""}
+
+        ${sel.type === "marker" && o.kind !== "house" ? `
+          <label class="small">Emoji</label>
+          <input id="f_emoji" value="${esc(o.emoji || "📍")}" placeholder="Emoji (paste) e.g. 🏦" />
+        ` : ""}
+
+        <label class="small">Description</label>
+        <textarea id="f_desc" placeholder="What is this?">${esc(meta.description || "")}</textarea>
+
+        <label class="small">Notes / Rules</label>
+        <textarea id="f_notes" placeholder="Rules, details, lore, etc.">${esc(meta.notes || "")}</textarea>
+
+        <div class="row">
+          <button id="saveInfo">Save Info</button>
+          <button id="focus">Focus</button>
+        </div>
+
+        <div style="color:var(--muted2); font-size:12px; margin-top:6px;">
+          ${sel.type === "marker"
+            ? `coords: x:${esc(o.x)} y:${esc(o.y)}`
+            : `points: ${esc(o.pts?.length || 0)}`
+          }
+        </div>
+      `;
+
+      document.getElementById("saveInfo").onclick = ()=>{
+        o.name = (document.getElementById("f_name").value || "").trim();
+        o.color = (document.getElementById("f_color").value || "#ffffff").trim();
+
+        if (sel.type === "marker" && o.kind === "house"){
+          const n = parseInt(document.getElementById("f_house").value, 10);
+          if (Number.isFinite(n) && n > 0) o.houseNumber = n;
+        }
+        if (sel.type === "marker" && o.kind !== "house"){
+          const e = (document.getElementById("f_emoji").value || "").trim();
+          if (e) o.emoji = e;
+        }
+        meta.description = (document.getElementById("f_desc").value || "").trim();
+        meta.notes = (document.getElementById("f_notes").value || "").trim();
+
+        scheduleSave();
+        render();
+        rebuildList();
+        openInfoFor(sel); // refresh UI with new values
+      };
+
+      document.getElementById("focus").onclick = ()=>{
+        if (sel.type === "marker"){
+          map.setView([o.y, o.x], Math.max(map.getZoom(), 1.0), { animate:true });
+        } else {
+          const b = L.latLngBounds(o.pts || []);
+          if (b.isValid()) map.fitBounds(b.pad(0.2), { animate:true });
+        }
+      };
     }
 
     function render(){
-      layerHouses.clearLayers();
-      layerPois.clearLayers();
+      layerMarkers.clearLayers();
       layerRoads.clearLayers();
       layerBorders.clearLayers();
-      layerCounties.clearLayers();
+      layerAreas.clearLayers();
 
-      // Areas
+      // Areas (counties)
       for (const a of data.areas){
         const poly = L.polygon(a.pts || [], {
           color: a.color || "#ffffff",
           weight: 3,
           opacity: 0.95,
           fillOpacity: 0.12
-        }).addTo(layerCounties);
+        }).addTo(layerAreas);
 
-        poly.on("click", (e) => {
+        poly.on("click", (e)=>{
           L.DomEvent.stopPropagation(e);
-          selected = { type:"area", id:a.id, layer: poly, obj: a };
-          openInfo(a);
+          selected = { type:"area", id:a.id, obj:a, layer: poly };
+          openInfoFor(selected);
+          if (modeSel.value === "erase" && isEditor) deleteSelected();
         });
       }
 
-      // Roads/Borders
-      for (const r of data.roads){
-        const line = L.polyline(r.pts || [], {
-          color: r.color || "#ffffff",
-          weight: (r.kind === "border" ? 5 : 4),
+      // Lines (roads + borders)
+      for (const ln of data.lines){
+        const isBorder = ln.kind === "border";
+        const line = L.polyline(ln.pts || [], {
+          color: ln.color || "#ffffff",
+          weight: isBorder ? 6 : 4,
           opacity: 0.95,
-          dashArray: (r.kind === "border" ? "10 6" : null)
-        }).addTo(r.kind === "border" ? layerBorders : layerRoads);
+          dashArray: isBorder ? "10 6" : null
+        }).addTo(isBorder ? layerBorders : layerRoads);
 
-        line.on("click", (e) => {
+        line.on("click", (e)=>{
           L.DomEvent.stopPropagation(e);
-          selected = { type:"road", id:r.id, layer: line, obj: r };
-          openInfo(r);
+          selected = { type:"line", id:ln.id, obj:ln, layer: line };
+          openInfoFor(selected);
+          if (modeSel.value === "erase" && isEditor) deleteSelected();
         });
       }
 
       // Markers
       for (const m of data.markers){
-        const marker = L.marker([m.y, m.x], {
-          icon: iconForMarker(m),
-          draggable: isEditor && (modeSel.value === "select")
-        }).addTo(m.kind === "house" ? layerHouses : layerPois);
+        const mk = L.marker([m.y, m.x], {
+          icon: markerIcon(m),
+          draggable: isEditor && modeSel.value === "select"
+        }).addTo(layerMarkers);
 
-        marker.on("click", (e) => {
+        mk.on("click", (e)=>{
           L.DomEvent.stopPropagation(e);
-          selected = { type:"marker", id:m.id, layer: marker, obj: m };
-          openInfo(m);
+          selected = { type:"marker", id:m.id, obj:m, layer: mk };
+          openInfoFor(selected);
+          if (modeSel.value === "erase" && isEditor) deleteSelected();
         });
 
-        marker.on("dragend", () => {
+        mk.on("dragend", ()=>{
           if (!isEditor) return;
-          const p = marker.getLatLng();
+          const p = mk.getLatLng();
           m.y = Math.round(p.lat);
           m.x = Math.round(p.lng);
-          setSaved(false);
-          saveLocal();
-          render();
+          scheduleSave();
+          openInfoFor({ type:"marker", id:m.id, obj:m, layer: mk });
         });
       }
+
+      chipMode.textContent = `mode: ${modeSel.value}`;
+      chipZoom.textContent = `zoom: ${map.getZoom().toFixed(2)}`;
     }
 
-    // ====== HUD coords + zoom ======
-    function updateHudFromEvent(e){
-      if (!e?.latlng) return;
-      const x = Math.round(e.latlng.lng);
-      const y = Math.round(e.latlng.lat);
-      chipXY.textContent = `x:${x} y:${y}`;
-    }
-    map.on("mousemove", updateHudFromEvent);
-    map.on("zoomend", () => chipZoom.textContent = `zoom:${map.getZoom().toFixed(2)}`);
-    chipZoom.textContent = `zoom:${map.getZoom().toFixed(2)}`;
-
-    // ====== Better zoom buttons ======
-    zoomInBtn.onclick = () => map.zoomIn(0.5);
-    zoomOutBtn.onclick = () => map.zoomOut(0.5);
-
-    document.getElementById("resetView").onclick = () => map.fitBounds(bounds);
-
-    // ====== Export / Import ======
-    document.getElementById("exportJson").onclick = () => {
-      box.value = JSON.stringify(data, null, 2);
-    };
-    document.getElementById("importJson").onclick = () => {
-      try{
-        const parsed = JSON.parse(box.value);
-        if (!parsed || typeof parsed !== "object") throw new Error("Invalid JSON");
-        if (!Array.isArray(parsed.markers) || !Array.isArray(parsed.roads) || !Array.isArray(parsed.areas)) {
-          throw new Error("JSON must have {markers:[], roads:[], areas:[]}");
-        }
-        data = parsed;
-        setSaved(false);
-        saveLocal();
-        render();
-        alert("Imported!");
-      }catch(e){
-        alert("Import failed: " + (e?.message || e));
-      }
-    };
-
-    // ====== Sign-in (temporary, client-side) ======
-    btnSignIn.onclick = () => {
-      const code = prompt("Editor passcode (temporary):");
-      if (code === "1234") {
-        setEditorMode(true);
-        render();
-      } else {
-        alert("Wrong code.");
-      }
-    };
-    btnSignOut.onclick = () => {
-      setEditorMode(false);
+    function deleteSelected(){
+      if (!selected) return;
+      if (selected.type === "marker") data.markers = data.markers.filter(x=>x.id !== selected.id);
+      if (selected.type === "line")   data.lines   = data.lines.filter(x=>x.id !== selected.id);
+      if (selected.type === "area")   data.areas   = data.areas.filter(x=>x.id !== selected.id);
+      clearSelection();
+      scheduleSave();
       render();
-    };
+      rebuildList();
+    }
 
-    // ====== MODE LOGIC (simple but usable) ======
-    function clearDrawPreview(){
+    // =========================
+    // DRAWING
+    // =========================
+    function clearDraw(){
       drawPts = [];
       if (drawPreview) { map.removeLayer(drawPreview); drawPreview = null; }
     }
 
-    modeSel.addEventListener("change", () => {
-      clearDrawPreview();
-      render();
-      clearSelection();
-    });
+    function drawPreviewNow(){
+      if (drawPreview) map.removeLayer(drawPreview);
+      const mode = modeSel.value;
+      const col = colorInp.value || "#ffffff";
 
-    map.on("click", (e) => {
+      if (mode === "road" || mode === "border"){
+        drawPreview = L.polyline(drawPts, {
+          color: col,
+          weight: mode === "border" ? 6 : 4,
+          opacity: 0.95,
+          dashArray: mode === "border" ? "10 6" : null
+        }).addTo(map);
+      } else if (mode === "area"){
+        drawPreview = L.polygon(drawPts, {
+          color: col,
+          weight: 3,
+          opacity: 0.95,
+          fillOpacity: 0.10
+        }).addTo(map);
+      }
+    }
+
+    map.on("click", (e)=>{
       const mode = modeSel.value;
       const x = Math.round(e.latlng.lng);
       const y = Math.round(e.latlng.lat);
@@ -700,208 +898,289 @@
       if (mode === "inspect") { clearSelection(); return; }
       if (!isEditor) return;
 
-      // Place marker
-      if (mode === "marker") {
-        const kind = markerTypeSel.value;
+      if (mode === "marker"){
+        const style = markerStyleSel.value;
         const color = colorInp.value || "#ffffff";
-        const name = (prompt("Name (optional):", "") || "").trim();
-        const notes = (prompt("Notes (optional):", "") || "").trim();
 
-        let houseNumber = null;
-        if (kind === "house") {
-          const forced = parseInt(houseNumberInp.value, 10);
-          houseNumber = Number.isFinite(forced) && forced > 0 ? forced : nextHouseNumber();
+        if (style === "house"){
+          const forced = parseInt(houseNumInp.value, 10);
+          const n = Number.isFinite(forced) && forced > 0 ? forced : nextHouse();
+          const obj = {
+            id: newId("house"),
+            kind: "house",
+            houseNumber: n,
+            name: `House #${n}`,
+            x, y,
+            color,
+            meta: { description:"", notes:"" }
+          };
+          data.markers.push(obj);
+          scheduleSave();
+          render();
+          selected = { type:"marker", id: obj.id, obj, layer:null };
+          openInfoFor(selected);
+          return;
         }
 
-        data.markers.push({
-          id: newId(kind),
-          kind,
-          name: name || (kind === "house" ? `House #${houseNumber}` : kind.toUpperCase()),
-          x, y, color,
-          ...(kind === "house" ? { houseNumber } : {}),
-          meta: { notes }
-        });
-
-        setSaved(false);
-        saveLocal();
+        // emoji marker
+        const obj = {
+          id: newId("m"),
+          kind: "emoji",
+          emoji: selectedEmoji || "📍",
+          name: "POI",
+          x, y,
+          color,
+          meta: { description:"", notes:"" }
+        };
+        data.markers.push(obj);
+        scheduleSave();
         render();
+        selected = { type:"marker", id: obj.id, obj, layer:null };
+        openInfoFor(selected);
         return;
       }
 
-      // Draw road or area (point-to-point)
-      if (mode === "road" || mode === "area") {
+      if (mode === "road" || mode === "border" || mode === "area"){
         drawPts.push([y, x]);
-        if (drawPreview) map.removeLayer(drawPreview);
-
-        if (mode === "road") {
-          drawPreview = L.polyline(drawPts, { weight: 4, opacity: 0.95, color: colorInp.value || "#fff" }).addTo(map);
-        } else {
-          drawPreview = L.polygon(drawPts, { weight: 3, opacity: 0.95, color: colorInp.value || "#fff", fillOpacity: 0.10 }).addTo(map);
-        }
+        drawPreviewNow();
         setSaved(false);
         return;
       }
 
-      // Erase (click something -> handled by layer click); clicking empty clears
-      if (mode === "erase") { clearSelection(); return; }
+      if (mode === "erase"){
+        // clicking empty space clears selection
+        clearSelection();
+      }
     });
 
-    btnUndoPoint.onclick = () => {
+    finishBtn.onclick = ()=>{
+      if (!isEditor) return;
+      const mode = modeSel.value;
+      const col = colorInp.value || "#ffffff";
+
+      if ((mode === "road" || mode === "border") && drawPts.length >= 2){
+        const name = prompt(mode === "border" ? "Border name:" : "Road name:", "") || "";
+        const obj = {
+          id: newId(mode),
+          kind: mode,
+          name: name.trim() || (mode === "border" ? "Border" : "Road"),
+          color: col,
+          pts: drawPts.slice(),
+          meta: { description:"", notes:"" }
+        };
+        data.lines.push(obj);
+        clearDraw();
+        scheduleSave();
+        render();
+        selected = { type:"line", id: obj.id, obj, layer:null };
+        openInfoFor(selected);
+        return;
+      }
+
+      if (mode === "area" && drawPts.length >= 3){
+        const name = prompt("County/Area name:", "") || "";
+        const obj = {
+          id: newId("county"),
+          kind: "county",
+          name: name.trim() || "County",
+          color: col,
+          pts: drawPts.slice(),
+          meta: { description:"", notes:"" }
+        };
+        data.areas.push(obj);
+        clearDraw();
+        scheduleSave();
+        render();
+        selected = { type:"area", id: obj.id, obj, layer:null };
+        openInfoFor(selected);
+        return;
+      }
+
+      alert("Not enough points to finish.");
+    };
+
+    undoBtn.onclick = ()=>{
       if (!isEditor) return;
       if (!drawPts.length) return;
       drawPts.pop();
-      if (drawPreview) map.removeLayer(drawPreview);
-      drawPreview = null;
-      if (!drawPts.length) return;
-
-      if (modeSel.value === "road") {
-        drawPreview = L.polyline(drawPts, { weight: 4, opacity: 0.95, color: colorInp.value || "#fff" }).addTo(map);
-      } else if (modeSel.value === "area") {
-        drawPreview = L.polygon(drawPts, { weight: 3, opacity: 0.95, color: colorInp.value || "#fff", fillOpacity: 0.10 }).addTo(map);
-      }
-    };
-
-    btnFinishRoad.onclick = () => {
-      if (!isEditor) return;
-      if (modeSel.value !== "road") return alert('Switch to "Draw Road" mode.');
-      if (drawPts.length < 2) return alert("Add at least 2 points.");
-      const name = (prompt("Road name (optional):", "") || "").trim();
-      const notes = (prompt("Notes (optional):", "") || "").trim();
-
-      data.roads.push({
-        id: newId("road"),
-        kind: "road",
-        name: name || "Road",
-        color: colorInp.value || "#ffffff",
-        pts: drawPts.slice(),
-        meta: { notes }
-      });
-
-      clearDrawPreview();
+      drawPreviewNow();
       setSaved(false);
-      saveLocal();
-      render();
     };
 
-    btnCloseArea.onclick = () => {
-      if (!isEditor) return;
-      if (modeSel.value !== "area") return alert('Switch to "Draw Area" mode.');
-      if (drawPts.length < 3) return alert("Need at least 3 points.");
-      // Leaflet polygon auto-closes visually, but this helps your intent (no-op data-wise)
-      alert("Loop will be closed when you finish the area.");
-    };
-
-    btnFinishArea.onclick = () => {
-      if (!isEditor) return;
-      if (modeSel.value !== "area") return alert('Switch to "Draw Area" mode.');
-      if (drawPts.length < 3) return alert("Add at least 3 points.");
-      const name = (prompt("County/Area name (optional):", "") || "").trim();
-      const notes = (prompt("Notes / rules (optional):", "") || "").trim();
-
-      data.areas.push({
-        id: newId("county"),
-        kind: "county",
-        name: name || "County",
-        color: colorInp.value || "#ffffff",
-        pts: drawPts.slice(),
-        meta: { notes }
-      });
-
-      clearDrawPreview();
-      setSaved(false);
-      saveLocal();
-      render();
-    };
-
-    btnDeleteSelected.onclick = () => {
-      if (!isEditor) return;
-      if (!selected) return;
-
-      if (selected.type === "marker") data.markers = data.markers.filter(m => m.id !== selected.id);
-      if (selected.type === "road") data.roads = data.roads.filter(r => r.id !== selected.id);
-      if (selected.type === "area") data.areas = data.areas.filter(a => a.id !== selected.id);
-
-      selected = null;
-      clearSelection();
-      setSaved(false);
-      saveLocal();
-      render();
-    };
-
-    btnClearSelection.onclick = () => clearSelection();
-
-    btnClearAll.onclick = () => {
-      if (!isEditor) return;
-      if (!confirm("Clear EVERYTHING?")) return;
-      data = { markers: [], roads: [], areas: [], meta: { mapId: data?.meta?.mapId || "default", updatedAt: null } };
-      setSaved(false);
-      saveLocal();
-      clearSelection();
-      render();
-    };
-
-    // Search (simple)
-    searchInp.addEventListener("input", () => {
-      const q = searchInp.value.trim().toLowerCase();
-      render();
-      if (!q) return;
-
-      function fadeLayer(layer){
-        layer.eachLayer(l => {
-          const el = l.getElement?.();
-          if (!el) return;
-          // rough match: check popup/info based on stored selection by proximity is hard; keep simple:
-          // just fade everything a little if searching; later we’ll build a proper index.
-          el.style.opacity = "0.25";
-        });
-      }
-      fadeLayer(layerHouses);
-      fadeLayer(layerPois);
-
-      // brighten only markers with matching names
-      [...data.markers].forEach(m => {
-        const hit = (m.name||"").toLowerCase().includes(q) || (m.kind||"").toLowerCase().includes(q);
-        if (!hit) return;
-        // find marker by coords and set opacity
-        const targetLayer = (m.kind==="house") ? layerHouses : layerPois;
-        targetLayer.eachLayer(l => {
-          const p = l.getLatLng?.();
-          if (!p) return;
-          if (Math.round(p.lng)===m.x && Math.round(p.lat)===m.y) {
-            const el = l.getElement?.();
-            if (el) el.style.opacity = "1";
-          }
-        });
-      });
+    // Keyboard helpers
+    window.addEventListener("keydown", (e)=>{
+      if (e.key === "Escape"){ clearDraw(); render(); }
+      if (e.key === "+" || e.key === "=") map.zoomIn(0.5);
+      if (e.key === "-" || e.key === "_") map.zoomOut(0.5);
+      if (e.key === "0") map.fitBounds(bounds);
     });
 
-    document.getElementById("closeInfo").onclick = () => {
-      // just clear selection; panel stays, but content resets
+    // =========================
+    // LIST + SEARCH
+    // =========================
+    function scoreHit(s, q){
+      s = (s||"").toLowerCase();
+      q = (q||"").toLowerCase();
+      if (!q) return 0;
+      if (s === q) return 3;
+      if (s.startsWith(q)) return 2;
+      if (s.includes(q)) return 1;
+      return 0;
+    }
+
+    function rebuildList(){
+      const q = (qInp.value || "").trim().toLowerCase();
+      const rows = [];
+
+      for (const m of data.markers){
+        const label = m.kind === "house" ? `House #${m.houseNumber ?? ""}` : (m.emoji || "📍");
+        const name = m.name || (m.kind === "house" ? `House #${m.houseNumber ?? ""}` : "Marker");
+        const hit = Math.max(scoreHit(name,q), scoreHit(label,q), scoreHit(m.meta?.notes,q), scoreHit(m.meta?.description,q));
+        if (!q || hit) rows.push({ type:"marker", obj:m, hit, icon: (m.kind==="house" ? "🏠" : (m.emoji || "📍")), title:name, sub:`x:${m.x} y:${m.y}` });
+      }
+
+      for (const ln of data.lines){
+        const icon = ln.kind === "border" ? "🧱" : "🛣️";
+        const name = ln.name || (ln.kind === "border" ? "Border" : "Road");
+        const hit = Math.max(scoreHit(name,q), scoreHit(ln.meta?.notes,q), scoreHit(ln.meta?.description,q));
+        if (!q || hit) rows.push({ type:"line", obj:ln, hit, icon, title:name, sub:`pts:${ln.pts?.length || 0}` });
+      }
+
+      for (const a of data.areas){
+        const icon = "🗺️";
+        const name = a.name || "County";
+        const hit = Math.max(scoreHit(name,q), scoreHit(a.meta?.notes,q), scoreHit(a.meta?.description,q));
+        if (!q || hit) rows.push({ type:"area", obj:a, hit, icon, title:name, sub:`pts:${a.pts?.length || 0}` });
+      }
+
+      rows.sort((A,B)=> (B.hit - A.hit) || A.title.localeCompare(B.title));
+      listEl.innerHTML = rows.length ? "" : `<div class="item"><div><b>No matches</b><small>Try a different search</small></div></div>`;
+
+      rows.slice(0, 80).forEach(r=>{
+        const div = document.createElement("div");
+        div.className = "item";
+        div.innerHTML = `
+          <div class="ic">${esc(r.icon)}</div>
+          <div style="min-width:0">
+            <b>${esc(r.title)}</b>
+            <small>${esc(r.sub)}</small>
+          </div>
+        `;
+        div.onclick = ()=>{
+          // focus + open info
+          if (r.type === "marker"){
+            map.setView([r.obj.y, r.obj.x], Math.max(map.getZoom(), 1.25), { animate:true });
+            selected = { type:"marker", id:r.obj.id, obj:r.obj, layer:null };
+            openInfoFor(selected);
+          } else if (r.type === "line"){
+            const b = L.latLngBounds(r.obj.pts || []);
+            if (b.isValid()) map.fitBounds(b.pad(0.2), { animate:true });
+            selected = { type:"line", id:r.obj.id, obj:r.obj, layer:null };
+            openInfoFor(selected);
+          } else {
+            const b = L.latLngBounds(r.obj.pts || []);
+            if (b.isValid()) map.fitBounds(b.pad(0.2), { animate:true });
+            selected = { type:"area", id:r.obj.id, obj:r.obj, layer:null };
+            openInfoFor(selected);
+          }
+        };
+        listEl.appendChild(div);
+      });
+    }
+
+    qInp.addEventListener("input", rebuildList);
+
+    // =========================
+    // BUTTONS
+    // =========================
+    closeInfoBtn.onclick = clearSelection;
+
+    delBtn.onclick = ()=>{ if (isEditor) deleteSelected(); };
+    clearSelBtn.onclick = clearSelection;
+
+    clearAllBtn.onclick = ()=>{
+      if (!isEditor) return;
+      if (!confirm("Clear EVERYTHING?")) return;
+      data.markers = [];
+      data.lines = [];
+      data.areas = [];
       clearSelection();
+      clearDraw();
+      scheduleSave();
+      render();
+      rebuildList();
     };
 
-    // ====== Boot ======
-    loadLocal();
+    resetViewBtn.onclick = ()=> map.fitBounds(bounds, { animate:true });
 
-    // If empty, add a tiny seed so it doesn't feel dead
-    if (data.markers.length === 0 && data.roads.length === 0 && data.areas.length === 0) {
+    exportBtn.onclick = ()=> box.value = JSON.stringify(data, null, 2);
+
+    importBtn.onclick = ()=>{
+      try{
+        const parsed = JSON.parse(box.value);
+        if (!parsed || typeof parsed !== "object") throw new Error("Invalid JSON");
+        if (!Array.isArray(parsed.markers) || !Array.isArray(parsed.lines) || !Array.isArray(parsed.areas)) {
+          throw new Error("JSON must have {markers:[], lines:[], areas:[]}");
+        }
+        data = parsed;
+        clearSelection();
+        clearDraw();
+        scheduleSave();
+        render();
+        rebuildList();
+        alert("Imported!");
+      }catch(e){
+        alert("Import failed: " + (e?.message || e));
+      }
+    };
+
+    modeSel.addEventListener("change", ()=>{
+      clearDraw();
+      chipMode.textContent = `mode: ${modeSel.value}`;
+      render();
+    });
+
+    // HUD zoom
+    zIn.onclick  = ()=> map.zoomIn(0.5);
+    zOut.onclick = ()=> map.zoomOut(0.5);
+
+    map.on("mousemove", (e)=>{
+      const x = Math.round(e.latlng.lng);
+      const y = Math.round(e.latlng.lat);
+      chipXY.textContent = `x:${x} y:${y}`;
+    });
+    map.on("zoomend", ()=> chipZoom.textContent = `zoom: ${map.getZoom().toFixed(2)}`);
+    chipZoom.textContent = `zoom: ${map.getZoom().toFixed(2)}`;
+
+    // =========================
+    // BOOT
+    // =========================
+    // Seed some demo stuff once if empty
+    function seedIfEmpty(){
+      if (data.markers.length || data.lines.length || data.areas.length) return;
       data.markers.push(
-        { id:"house-seed", kind:"house", houseNumber: 1, name:"House #1", x: 840, y: 620, color:"#ffffff", meta:{ notes:"Seed marker" } },
-        { id:"poi-seed", kind:"poi", name:"Valentine", x: 790, y: 430, color:"#22c55e", meta:{ notes:"Seed POI" } }
+        { id:"house-1", kind:"house", houseNumber:1, name:"House #1", x: 820, y: 610, color:"#ffffff", meta:{ description:"Starter house", notes:"Edit me on the right panel." } },
+        { id:"bank", kind:"emoji", emoji:"🏦", name:"Bank", x: 1180, y: 700, color:"#22c55e", meta:{ description:"Bank POI", notes:"Loans, storage, etc." } },
+        { id:"sheriff", kind:"emoji", emoji:"⭐", name:"Sheriff Office", x: 1210, y: 740, color:"#f59e0b", meta:{ description:"Law zone", notes:"No shooting inside." } }
       );
-      data.roads.push(
-        { id:"road-seed", kind:"road", name:"Main Road", color:"#f59e0b", pts:[[420,780],[520,820],[620,840]], meta:{ notes:"Seed road" } }
+      data.lines.push(
+        { id:"road-1", kind:"road", name:"Main Road", color:"#f59e0b", pts:[[520,820],[620,880],[720,910]], meta:{ description:"Road", notes:"" } },
+        { id:"border-1", kind:"border", name:"County Border", color:"#ffffff", pts:[[460,680],[560,760],[640,740],[700,680]], meta:{ description:"Border", notes:"" } }
       );
       data.areas.push(
-        { id:"county-seed", kind:"county", name:"Example County", color:"#3b82f6", pts:[[380,620],[360,740],[450,820],[520,700]], meta:{ notes:"Seed county" } }
+        { id:"county-1", kind:"county", name:"Example County", color:"#3b82f6", pts:[[380,620],[360,740],[450,820],[520,700]], meta:{ description:"County", notes:"Rules go here." } }
       );
       saveLocal();
     }
 
-    setEditorMode(false);
-    render();
-    setSaved(true);
-    chipZoom.textContent = `zoom:${map.getZoom().toFixed(2)}`;
+    bootLoad().then(()=>{
+      seedIfEmpty();
+      setSaved(true);
+      setEditorMode(false);
+      markerStyleSel.dispatchEvent(new Event("change"));
+      render();
+      rebuildList();
+    });
   </script>
 </body>
 </html>
