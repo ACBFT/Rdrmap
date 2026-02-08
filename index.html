@@ -3,8 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>A Cowboy’s Frontier — RP Map</title>
-  <meta name="description" content="Interactive RP Map for A Cowboy’s Frontier" />
+  <title>ACF — RDR Map Editor</title>
   <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
@@ -17,7 +16,7 @@
       </div>
     </div>
 
-    <div class="topbar__actions">
+    <div class="topbar__center">
       <div class="search">
         <input id="searchInput" type="search" placeholder="Search places, houses, POIs…" autocomplete="off" />
         <button id="clearSearch" class="btn btn--ghost" title="Clear">✕</button>
@@ -27,8 +26,21 @@
         <option value="all">All Types</option>
       </select>
 
-      <button id="resetView" class="btn" title="Reset view">Reset</button>
-      <button id="toggleSidebar" class="btn btn--ghost" title="Toggle sidebar">Sidebar</button>
+      <button id="resetView" class="btn">Reset</button>
+      <button id="toggleSidebar" class="btn btn--ghost">Sidebar</button>
+    </div>
+
+    <div class="topbar__right">
+      <!-- Always visible until /api/me says logged in -->
+      <a id="loginCta" class="cta" href="/api/login">
+        Are you a map editor? <b>Click here</b> to sign in
+      </a>
+
+      <div id="userChip" class="userchip userchip--hidden">
+        <span id="userName" class="userchip__name">—</span>
+        <button id="openEditor" class="btn btn--gold">Editor</button>
+        <button id="logoutBtn" class="btn btn--ghost">Logout</button>
+      </div>
     </div>
   </header>
 
@@ -49,22 +61,20 @@
       </div>
 
       <div class="sidebar__footer">
-        <div class="hint">
-          <b>Tips:</b> Scroll to zoom • Drag to pan • Click markers to inspect
-        </div>
+        <div class="hint"><b>Tips:</b> Scroll to zoom • Drag to pan • Click markers to inspect</div>
       </div>
     </aside>
 
     <section class="stage">
-      <div id="mapWrap" class="mapWrap" aria-label="Map viewer">
+      <div id="mapWrap" class="mapWrap">
         <img id="mapImage" class="mapImage" src="./assets/rdo-map.jpeg" alt="RDO Map" />
-
-        <!-- Markers get injected here -->
         <div id="markerLayer" class="markerLayer"></div>
 
         <div class="hud">
           <div class="pill" id="hudCoords">x: — y: —</div>
           <div class="pill" id="hudZoom">zoom: 1.00</div>
+          <div class="pill pill--muted" id="hudMode">mode: browse</div>
+          <div class="pill pill--warn" id="hudDirty" style="display:none;">unsaved changes</div>
         </div>
       </div>
 
@@ -74,6 +84,77 @@
           <button id="closeInspector" class="btn btn--ghost">Close</button>
         </div>
         <div class="inspector__body" id="insBody"></div>
+      </div>
+
+      <div id="editorPanel" class="editor editor--hidden">
+        <div class="editor__head">
+          <div class="editor__title">Map Editor</div>
+          <div class="editor__headBtns">
+            <button id="collapseEditor" class="btn btn--ghost">Collapse</button>
+            <button id="closeEditor" class="btn btn--ghost">Close</button>
+          </div>
+        </div>
+
+        <div id="editorBody" class="editor__body">
+          <div class="editor__section">
+            <div class="editor__label">Mode</div>
+            <div class="seg">
+              <button class="seg__btn seg__btn--active" data-mode="browse">Browse</button>
+              <button class="seg__btn" data-mode="add">Add</button>
+              <button class="seg__btn" data-mode="delete">Delete</button>
+            </div>
+            <div class="editor__help" id="modeHelp">Browse: click markers to inspect.</div>
+          </div>
+
+          <div class="editor__section">
+            <div class="editor__label">New Marker</div>
+            <div class="form">
+              <label class="field">
+                <span>Name</span>
+                <input id="mName" type="text" placeholder="Valentine Rental" />
+              </label>
+
+              <label class="field">
+                <span>Type</span>
+                <input id="mType" type="text" placeholder="House / Shop / POI" />
+              </label>
+
+              <label class="field">
+                <span>Notes</span>
+                <textarea id="mNotes" rows="3" placeholder="Optional notes…"></textarea>
+              </label>
+
+              <div class="row">
+                <button id="cancelPlace" class="btn btn--ghost" disabled>Cancel placing</button>
+                <button id="startPlace" class="btn btn--gold">Click map to place</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="editor__section">
+            <div class="editor__label">Selected</div>
+            <div class="selectedBox" id="selectedBox">
+              <div class="mutedSmall">No marker selected.</div>
+            </div>
+            <div class="row">
+              <button id="deleteSelected" class="btn btn--danger" disabled>Delete selected</button>
+            </div>
+          </div>
+
+          <div class="editor__section">
+            <div class="editor__label">Save</div>
+            <div class="row">
+              <button id="reloadMap" class="btn btn--ghost">Reload</button>
+              <button id="saveMap" class="btn btn--gold" disabled>Save changes</button>
+            </div>
+            <div class="editor__help mutedSmall" id="saveHint">Uses your existing /api/save (no API changes).</div>
+          </div>
+
+          <div class="editor__section">
+            <div class="editor__label">Marker List (scroll)</div>
+            <div id="editorList" class="editorList"></div>
+          </div>
+        </div>
       </div>
     </section>
   </main>
